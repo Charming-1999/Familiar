@@ -20,6 +20,33 @@ export const LoginPage: React.FC = () => {
   }, [initialize])
 
   useEffect(() => {
+    // Handle Supabase auth errors returned in URL hash (e.g. #error=...)
+    if (!window.location.hash) return
+
+    const raw = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash
+    const params = new URLSearchParams(raw)
+    const errorCode = params.get('error_code')
+    const errorDescription = params.get('error_description')
+
+    if (errorCode || errorDescription) {
+      const desc = errorDescription ? decodeURIComponent(errorDescription.replace(/\+/g, ' ')) : null
+      let msg = desc || '登录/验证失败'
+
+      if (errorCode === 'otp_expired') {
+        msg = '邮箱验证链接已失效（可能已过期或已使用）。请重新注册/重新发送验证邮件后再尝试。'
+      }
+
+      setError(msg)
+
+      try {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search)
+      } catch {
+        // ignore
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     if (initialized && user) {
       navigate('/')
     }
@@ -55,6 +82,9 @@ export const LoginPage: React.FC = () => {
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/login`,
+          },
         })
         if (signUpError) setError(signUpError.message)
         else setError('注册成功：请检查邮箱完成验证后再登录（如已验证可直接再次登录）')
