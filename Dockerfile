@@ -1,6 +1,7 @@
-ARG DOCKERHUB_MIRROR=tploe6qr.mirror.aliyuncs.com
+# 国内网络环境建议使用镜像仓库前缀（默认：DaoCloud DockerHub Mirror）
+ARG IMAGE_REGISTRY=docker.m.daocloud.io
 
-FROM ${DOCKERHUB_MIRROR}/library/node:20-alpine AS build
+FROM ${IMAGE_REGISTRY}/library/node:20-alpine AS build
 
 WORKDIR /app
 
@@ -12,6 +13,9 @@ RUN npm ci --no-audit --no-fund
 
 COPY . .
 
+# Increase Node heap for Vite/TS build (avoid OOM on large bundles)
+ENV NODE_OPTIONS=--max-old-space-size=4096
+
 # Vite envs are baked at build time
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
@@ -21,7 +25,7 @@ ENV VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
 RUN npm run build
 
 
-FROM ${DOCKERHUB_MIRROR}/library/nginx:1.27-alpine
+FROM ${IMAGE_REGISTRY}/library/nginx:1.27-alpine
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
