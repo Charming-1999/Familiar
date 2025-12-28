@@ -1,0 +1,15 @@
+---
+description: 
+alwaysApply: false
+enabled: true
+updatedAt: 2025-12-28T09:22:59.946Z
+provider: 
+---
+
+# 组件市场与订阅组件（实现约定）
+
+- 组件订阅状态存储在 `public.user_component_subscriptions` 表（按 `user_id` 一行，`subscriptions` 为 JSON）。
+- 客户端使用 `src/stores/useComponentStore.ts`：本地 `persist` + 云端 `upsert` 同步。
+- 页面顶部组件栏使用 `src/components/ComponentDock.tsx`，仅在订阅后展示对应组件。
+- 主题门禁：未订阅 `theme` 时，页面强制使用暗色（不修改用户已选择主题偏好）；订阅后恢复用户偏好主题。
+- 组件市场页面：`/components` -> `src/pages/ComponentMarketPage.tsx`。
