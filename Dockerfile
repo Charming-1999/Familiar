@@ -1,4 +1,6 @@
-FROM node:20-alpine AS build
+ARG DOCKERHUB_MIRROR=tploe6qr.mirror.aliyuncs.com
+
+FROM ${DOCKERHUB_MIRROR}/library/node:20-alpine AS build
 
 WORKDIR /app
 
@@ -19,7 +21,7 @@ ENV VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
 RUN npm run build
 
 
-FROM nginx:1.27-alpine
+FROM ${DOCKERHUB_MIRROR}/library/nginx:1.27-alpine
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html

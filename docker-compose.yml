@@ -3,6 +3,7 @@ services:
     build:
       context: .
       args:
+        DOCKERHUB_MIRROR: ${DOCKERHUB_MIRROR:-tploe6qr.mirror.aliyuncs.com}
         VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
     ports:
