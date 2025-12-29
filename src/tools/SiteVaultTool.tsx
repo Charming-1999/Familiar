@@ -4,7 +4,6 @@ import { Globe, Copy, Plus, Search, Trash2, ExternalLink, Pencil, Check, X } fro
 import { supabase } from '../lib/supabase'
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
-import { cn } from '../lib/utils'
 import { useAuthStore } from '../stores/useAuthStore'
 
 type SiteItem = {
@@ -18,15 +17,6 @@ type SiteItem = {
   updated_at: string
 }
 
-function pad2(n: number) {
-  return String(n).padStart(2, '0')
-}
-
-function formatLocal(ts: string) {
-  const d = new Date(ts)
-  if (Number.isNaN(d.getTime())) return ts
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
-}
 
 async function copyText(text: string) {
   try {

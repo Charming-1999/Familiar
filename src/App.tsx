@@ -33,7 +33,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 }
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, profile, loading, initialized, initialize } = useAuthStore()
+  const { user, profile, initialized, initialize } = useAuthStore()
   const { bindUser } = useToolStore()
   const { bindUser: bindComponents } = useComponentStore()
 

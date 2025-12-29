@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Star, Code2, Binary, Clock, Link2, ShieldCheck, ChevronRight, Fingerprint, Search, FileCode2, Terminal, NotebookPen, Bot, ListTodo, PanelsLeftRight, QrCode, BookOpen, Globe, FileText, Image as ImageIcon } from 'lucide-react'
+import { Star, Code2, Binary, Clock, Link2, ShieldCheck, ChevronRight, Fingerprint, Search, FileCode2, Terminal, NotebookPen, Bot, ListTodo, PanelsLeftRight, QrCode, BookOpen, Globe, Image as ImageIcon } from 'lucide-react'
+
 
 
 
