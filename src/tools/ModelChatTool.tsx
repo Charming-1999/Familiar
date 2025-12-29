@@ -282,9 +282,11 @@ export const ModelChatTool: React.FC = () => {
 
   const abortRef = useRef<AbortController | null>(null)
   const scrollRef = useRef<HTMLDivElement | null>(null)
+  const activeConversationIdRef = useRef<string | null>(null)
 
   const assistantContentRef = useRef('')
   const assistantThinkRef = useRef('')
+
 
   const apiMessages = useMemo(() => {
     return messages
@@ -292,7 +294,12 @@ export const ModelChatTool: React.FC = () => {
       .map((m) => ({ role: m.role as ChatRole, content: m.content }))
   }, [messages])
 
+  useEffect(() => {
+    activeConversationIdRef.current = activeConversationId
+  }, [activeConversationId])
+
   const loadConversations = async () => {
+
     if (!user) return
     setConversationsLoading(true)
     try {
@@ -305,9 +312,10 @@ export const ModelChatTool: React.FC = () => {
 
       if (error) throw error
       setConversations((data || []) as Conversation[])
-      if (!activeConversationId && (data?.[0]?.id || null)) {
+      if (!activeConversationIdRef.current && (data?.[0]?.id || null)) {
         setActiveConversationId(data![0].id)
       }
+
     } catch (e: any) {
       setError(e?.message || '加载会话失败')
     } finally {
@@ -415,6 +423,32 @@ export const ModelChatTool: React.FC = () => {
   }, [user?.id])
 
   useEffect(() => {
+    if (!user) return
+
+    const onVisible = (e?: Event) => {
+      if (e?.type === 'focus' || document.visibilityState === 'visible') {
+        requestAnimationFrame(() => {
+          loadConversations()
+          const cid = activeConversationIdRef.current
+          if (cid) loadMessages(cid)
+        })
+      }
+    }
+
+    window.addEventListener('focus', onVisible)
+    window.addEventListener('pageshow', onVisible)
+    document.addEventListener('visibilitychange', onVisible)
+
+    return () => {
+      window.removeEventListener('focus', onVisible)
+      window.removeEventListener('pageshow', onVisible)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
+
+  useEffect(() => {
     if (!user || !activeConversationId) {
       setMessages([])
       return
@@ -422,6 +456,7 @@ export const ModelChatTool: React.FC = () => {
     loadMessages(activeConversationId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, activeConversationId])
+
 
   useEffect(() => {
     const el = scrollRef.current

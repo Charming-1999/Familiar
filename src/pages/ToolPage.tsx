@@ -17,6 +17,8 @@ import { MonacoEditorTool } from '../tools/MonacoEditorTool'
 import { QrCodeTool } from '../tools/QrCodeTool'
 import { PromptVaultTool } from '../tools/PromptVaultTool'
 import { SiteVaultTool } from '../tools/SiteVaultTool'
+import { CronTool } from '../tools/CronTool'
+import { ImageTool } from '../tools/ImageTool'
 import { Button } from '../components/Button'
 
 
@@ -44,6 +46,8 @@ const TOOL_COMPONENTS: Record<string, React.FC> = {
   'qrcode': QrCodeTool,
   'promptvault': PromptVaultTool,
   'sitevault': SiteVaultTool,
+  'cron': CronTool,
+  'image': ImageTool,
 }
 
 

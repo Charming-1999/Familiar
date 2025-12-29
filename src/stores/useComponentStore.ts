@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { supabase } from '../lib/supabase'
 
-export type ComponentId = 'time' | 'weather' | 'theme' | 'sticky' | 'quote'
+export type ComponentId = 'time' | 'weather' | 'theme' | 'sticky' | 'quote' | 'focus' | 'search'
 
 export type ComponentSubscriptions = Record<ComponentId, boolean>
 
@@ -28,6 +28,8 @@ const DEFAULT_SUBS: ComponentSubscriptions = {
   theme: false,
   sticky: false,
   quote: false,
+  focus: false,
+  search: false,
 }
 
 function normalizeSubscriptions(raw: any): ComponentSubscriptions {
@@ -38,6 +40,8 @@ function normalizeSubscriptions(raw: any): ComponentSubscriptions {
     theme: typeof raw.theme === 'boolean' ? raw.theme : DEFAULT_SUBS.theme,
     sticky: typeof raw.sticky === 'boolean' ? raw.sticky : DEFAULT_SUBS.sticky,
     quote: typeof raw.quote === 'boolean' ? raw.quote : DEFAULT_SUBS.quote,
+    focus: typeof raw.focus === 'boolean' ? raw.focus : DEFAULT_SUBS.focus,
+    search: typeof raw.search === 'boolean' ? raw.search : DEFAULT_SUBS.search,
   }
 }
 

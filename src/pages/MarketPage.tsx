@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Star, Code2, Binary, Clock, Link2, ShieldCheck, ChevronRight, Fingerprint, Search, FileCode2, Terminal, NotebookPen, Bot, ListTodo, PanelsLeftRight, QrCode, BookOpen, Globe } from 'lucide-react'
+import { Star, Code2, Binary, Clock, Link2, ShieldCheck, ChevronRight, Fingerprint, Search, FileCode2, Terminal, NotebookPen, Bot, ListTodo, PanelsLeftRight, QrCode, BookOpen, Globe, FileText, Image as ImageIcon } from 'lucide-react'
 
 
 
@@ -25,9 +25,11 @@ const ALL_TOOLS = [
   { id: 'excalidraw', name: 'Excalidraw 白板', description: '云端自动保存白板（v1：仅矢量/文本），跨设备同步', icon: PanelsLeftRight, category: 'dev' },
   { id: 'chat', name: '模型对话', description: '基于 grsaiapi 的流式对话，支持 gemini-3-pro / gemini-3-flash', icon: Bot, category: 'dev' },
   { id: 'qrcode', name: '二维码生成', description: '输入文本/链接自动生成二维码，支持纠错等级、颜色与 PNG/SVG 导出', icon: QrCode, category: 'convert' },
-  { id: 'promptvault', name: '提示词宝库', description: '沉淀高质量 Prompt：全站可见，支持提交/复制/删除本人', icon: BookOpen, category: 'dev' },
-  { id: 'sitevault', name: '精选站点集', description: '沉淀高质量站点链接：全站可见，支持新增/编辑/删除本人', icon: Globe, category: 'dev' },
+  { id: 'promptvault', name: 'Prompt 市场', description: '沉淀高质量 Prompt：全站可见，支持提交/复制/删除本人', icon: BookOpen, category: 'dev' },
+  { id: 'sitevault', name: '精选网站', description: '沉淀高质量站点链接：全站可见，支持新增/编辑/删除本人', icon: Globe, category: 'dev' },
   { id: 'todolist', name: 'TodoList', description: '简单待办清单：增删勾选，支持收藏区 hover 快捷完成', icon: ListTodo, category: 'dev' },
+  { id: 'cron', name: 'Cron 表达式生成器', description: '可视化生成 Cron 定时任务表达式，支持预设和自定义配置', icon: Clock, category: 'dev' },
+  { id: 'image', name: '图片工具集', description: 'Base64 转换、尺寸调整、图片压缩等多合一图片处理工具', icon: ImageIcon, category: 'convert' },
 ]
 
 

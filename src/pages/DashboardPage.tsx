@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Star, Code2, Binary, Clock, Link2, ShieldCheck, Plus, Fingerprint, Search, FileCode2, Terminal, NotebookPen, Bot, ListTodo, PanelsLeftRight, QrCode, BookOpen, Globe } from 'lucide-react'
+import { Star, Code2, Binary, Clock, Link2, ShieldCheck, Plus, Fingerprint, Search, FileCode2, Terminal, NotebookPen, Bot, ListTodo, PanelsLeftRight, QrCode, BookOpen, Globe, FileText, Image as ImageIcon } from 'lucide-react'
 
 
 
@@ -29,6 +29,9 @@ const iconMap: Record<string, any> = {
   'promptvault': BookOpen,
   'sitevault': Globe,
   'todolist': ListTodo,
+  'cron': Clock,
+  'markdown': FileText,
+  'image': ImageIcon,
 }
 
 
@@ -49,9 +52,11 @@ const TOOL_NAMES: Record<string, string> = {
   'excalidraw': 'Excalidraw 白板',
   'chat': '模型对话',
   'qrcode': '二维码生成',
-  'promptvault': '提示词宝库',
-  'sitevault': '精选站点集',
+  'promptvault': 'Prompt 市场',
+  'sitevault': '精选网站',
   'todolist': 'TodoList',
+  'cron': 'Cron 表达式',
+  'image': '图片工具集',
 }
 
 

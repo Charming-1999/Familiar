@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Clock, CloudSun, Palette, Star, StickyNote, Quote } from 'lucide-react'
+import { Clock, CloudSun, Palette, Star, StickyNote, Quote, Target, Search } from 'lucide-react'
 
 import { Button } from '../components/Button'
 import { useComponentStore } from '../stores/useComponentStore'
@@ -34,8 +34,20 @@ const ALL_COMPONENTS = [
   {
     id: 'sticky' as const,
     name: '快捷记事贴（Sticky Notes）',
-    description: '订阅后：在工作台右下角出现“灵感速记”，Enter 回车提交到“随心记”（不做本地保存，Shift+Enter 换行）',
+    description: '订阅后：在工作台右下角出现"灵感速记"，Enter 回车提交到"随心记"（不做本地保存，Shift+Enter 换行）',
     icon: StickyNote,
+  },
+  {
+    id: 'focus' as const,
+    name: '专注模式',
+    description: '订阅后：全屏专注计时器，支持番茄工作法，帮助你高效专注工作',
+    icon: Target,
+  },
+  {
+    id: 'search' as const,
+    name: '快捷搜索栏（Command Palette）',
+    description: '订阅后：按 Ctrl/Cmd+Q 唤起全局搜索，快速导航到任意工具',
+    icon: Search,
   },
 ]
 

@@ -260,7 +260,7 @@ export const SiteVaultTool: React.FC = () => {
   if (!user) {
     return (
       <div className="glass-card p-6 rounded-lg text-sm text-muted-foreground">
-        请先登录后使用“精选站点集”。
+        请先登录后使用"精选网站"。
       </div>
     )
   }
@@ -270,7 +270,7 @@ export const SiteVaultTool: React.FC = () => {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center space-x-2">
           <Globe className="w-5 h-5 text-primary" />
-          <h2 className="text-xl font-bold italic">精选站点集</h2>
+          <h2 className="text-xl font-bold italic">精选网站</h2>
         </div>
 
         <div className="w-full sm:w-80">
@@ -289,203 +289,227 @@ export const SiteVaultTool: React.FC = () => {
       {error ? <div className="text-xs text-red-400">{error}</div> : null}
       {info ? <div className="text-xs text-primary">{info}</div> : null}
 
-      <div className="glass-card p-4 rounded-xl border border-border space-y-3">
-        <div className="text-sm font-semibold text-foreground">新增站点</div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <div className="text-xs text-muted-foreground">标题（必填）</div>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(clampTitle(e.target.value))}
-              placeholder="例如：Supabase Docs"
-              className="bg-muted/10"
-              disabled={submitting}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="text-xs text-muted-foreground">URL（必填）</div>
-            <Input
-              value={url}
-              onChange={(e) => setUrl(clampUrl(e.target.value))}
-              placeholder="https://... 或 domain.com"
-              className="bg-muted/10 font-mono"
-              disabled={submitting}
-            />
-          </div>
+      <div className="glass-card p-5 rounded-xl border border-border bg-gradient-to-br from-primary/5 to-transparent">
+        <div className="flex items-center gap-2 mb-4">
+          <Plus className="w-4 h-4 text-primary" />
+          <div className="text-sm font-semibold text-foreground">新增站点</div>
         </div>
 
-        <div className="space-y-2">
-          <div className="text-xs text-muted-foreground">描述（可选）</div>
-          <Input
-            value={description}
-            onChange={(e) => setDescription(clampDescription(e.target.value))}
-            placeholder="一句话说明用途"
-            className="bg-muted/10"
-            disabled={submitting}
-          />
-          <div className="flex items-center justify-end">
-            <Button size="sm" onClick={handleSubmit} disabled={submitting || !title.trim() || !url.trim()} className="space-x-1">
-              <Plus className="w-4 h-4" />
-              <span>{submitting ? '提交中…' : '提交'}</span>
-            </Button>
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-foreground flex items-center gap-1">
+                标题 <span className="text-red-400">*</span>
+              </label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(clampTitle(e.target.value))}
+                placeholder="例如：Supabase Docs"
+                className="bg-background/80 border-border/50 focus:border-primary transition-colors"
+                disabled={submitting}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-foreground flex items-center gap-1">
+                URL <span className="text-red-400">*</span>
+              </label>
+              <Input
+                value={url}
+                onChange={(e) => setUrl(clampUrl(e.target.value))}
+                placeholder="https://... 或 domain.com"
+                className="bg-background/80 border-border/50 focus:border-primary transition-colors font-mono text-sm"
+                disabled={submitting}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">描述（可选）</label>
+            <Input
+              value={description}
+              onChange={(e) => setDescription(clampDescription(e.target.value))}
+              placeholder="一句话说明用途"
+              className="bg-background/80 border-border/50 focus:border-primary transition-colors"
+              disabled={submitting}
+            />
+            <div className="flex items-center justify-end pt-1">
+              <Button 
+                size="sm" 
+                onClick={handleSubmit} 
+                disabled={submitting || !title.trim() || !url.trim()}
+                className="h-8 px-4 bg-primary hover:bg-primary/90"
+              >
+                {submitting ? '提交中...' : '提交站点'}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold text-foreground">最新收录</div>
-        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-          刷新
+      <div className="flex items-center justify-between border-t border-border/50 pt-4">
+        <div className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <Globe className="w-4 h-4 text-primary" />
+          最新收录 ({filtered.length})
+        </div>
+        <Button variant="outline" size="sm" onClick={load} disabled={loading} className="h-8">
+          {loading ? '加载中...' : '刷新'}
         </Button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-auto space-y-3">
+      <div className="flex-1 min-h-0 overflow-auto pb-2">
         {loading ? (
-          <div className="p-4 text-sm text-muted-foreground">加载中...</div>
+          <div className="p-8 text-center text-sm text-muted-foreground">加载中...</div>
         ) : filtered.length === 0 ? (
-          <div className="p-6 text-sm text-muted-foreground">暂无内容</div>
+          <div className="p-10 text-center">
+            <Globe className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
+            <div className="text-sm text-muted-foreground">暂无站点，快来添加第一个吧！</div>
+          </div>
         ) : (
-          filtered.map((it) => {
-            const mine = it.created_by === user.id
-            const isEditing = editingId === it.id
-            return (
-              <div key={it.id} className="glass-card p-4 rounded-xl border border-border">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    {!isEditing ? (
-                      <>
-                        <div className="text-base font-bold text-foreground truncate">{it.title}</div>
-                        {it.description ? <div className="text-sm text-muted-foreground mt-1">{it.description}</div> : null}
-                        <a
-                          href={it.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-2 block text-[12px] text-primary hover:underline truncate font-mono"
-                          title={it.url}
-                        >
-                          {it.url}
-                        </a>
-                        <div className="text-[11px] text-muted-foreground mt-2">
-                          贡献者：{it.created_by_email || it.created_by} · 更新于 {formatLocal(it.updated_at)}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+            {filtered.map((it) => {
+              const mine = it.created_by === user.id
+              const isEditing = editingId === it.id
+              return (
+                <div 
+                  key={it.id} 
+                  className="glass-card p-4 rounded-xl border border-border hover:border-primary/30 transition-all group"
+                >
+                  {!isEditing ? (
+                    <>
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-base font-bold text-foreground group-hover:text-primary transition-colors mb-1.5">
+                            {it.title}
+                          </div>
+                          {it.description && (
+                            <div className="text-sm text-muted-foreground leading-relaxed mb-2">
+                              {it.description}
+                            </div>
+                          )}
                         </div>
-                      </>
-                    ) : (
-                      <div className="space-y-2">
-                        <Input
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(clampTitle(e.target.value))}
-                          className="bg-muted/10"
-                          disabled={submitting}
-                        />
-                        <Input
-                          value={editUrl}
-                          onChange={(e) => setEditUrl(clampUrl(e.target.value))}
-                          className="bg-muted/10 font-mono"
-                          disabled={submitting}
-                        />
-                        <Input
-                          value={editDescription}
-                          onChange={(e) => setEditDescription(clampDescription(e.target.value))}
-                          className="bg-muted/10"
-                          disabled={submitting}
-                        />
                       </div>
-                    )}
-                  </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    {!isEditing ? (
-                      <>
+                      <a
+                        href={it.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block text-xs text-primary/80 hover:text-primary hover:underline truncate font-mono mb-3 px-2 py-1.5 bg-primary/5 rounded border border-primary/10"
+                        title={it.url}
+                      >
+                        🔗 {it.url}
+                      </a>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-border/30">
+                        <div className="text-[10px] text-muted-foreground/70">
+                          {it.created_by_email || it.created_by}
+                        </div>
+                        
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 hover:bg-primary/10"
+                            onClick={() => {
+                              try {
+                                window.open(it.url, '_blank', 'noreferrer')
+                              } catch {}
+                            }}
+                            title="打开"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 hover:bg-primary/10"
+                            onClick={async () => {
+                              const ok = await copyText(it.url)
+                              setInfo(ok ? '✓ 已复制' : '复制失败')
+                              clearInfoSoon()
+                            }}
+                            title="复制"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </Button>
+
+                          {mine && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 hover:bg-primary/10"
+                                onClick={() => beginEdit(it)}
+                                title="编辑"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-red-400 hover:text-red-500 hover:bg-red-400/10"
+                                onClick={() => handleDelete(it.id)}
+                                title="删除"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-3">
+                      <Input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(clampTitle(e.target.value))}
+                        className="bg-muted/10"
+                        disabled={submitting}
+                        placeholder="标题"
+                      />
+                      <Input
+                        value={editUrl}
+                        onChange={(e) => setEditUrl(clampUrl(e.target.value))}
+                        className="bg-muted/10 font-mono text-sm"
+                        disabled={submitting}
+                        placeholder="URL"
+                      />
+                      <Input
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(clampDescription(e.target.value))}
+                        className="bg-muted/10"
+                        disabled={submitting}
+                        placeholder="描述（可选）"
+                      />
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/30">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="space-x-1"
-                          onClick={() => {
-                            try {
-                              window.open(it.url, '_blank', 'noreferrer')
-                            } catch {
-                              // ignore
-                            }
-                          }}
-                          title="打开"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          <span>打开</span>
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="space-x-1"
-                          onClick={async () => {
-                            const ok = await copyText(it.url)
-                            setInfo(ok ? '已复制' : '复制失败')
-                            clearInfoSoon()
-                          }}
-                          title="复制 URL"
-                        >
-                          <Copy className="w-4 h-4" />
-                          <span>复制</span>
-                        </Button>
-
-                        {mine ? (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="space-x-1"
-                              onClick={() => beginEdit(it)}
-                              title="编辑"
-                            >
-                              <Pencil className="w-4 h-4" />
-                              <span>编辑</span>
-                            </Button>
-
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="space-x-1 text-red-400 hover:text-red-500 hover:bg-red-400/10 border-red-400/20"
-                              onClick={() => handleDelete(it.id)}
-                              title="删除"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              <span>删除</span>
-                            </Button>
-                          </>
-                        ) : null}
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className={cn('space-x-1', submitting && 'opacity-60 pointer-events-none')}
-                          onClick={saveEdit}
-                          title="保存"
-                        >
-                          <Check className="w-4 h-4" />
-                          <span>保存</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="space-x-1"
+                          className="h-7 px-3"
                           onClick={cancelEdit}
-                          title="取消"
                           disabled={submitting}
                         >
-                          <X className="w-4 h-4" />
-                          <span>取消</span>
+                          <X className="w-3.5 h-3.5 mr-1" />
+                          取消
                         </Button>
-                      </>
-                    )}
-                  </div>
+                        <Button
+                          size="sm"
+                          className="h-7 px-3"
+                          onClick={saveEdit}
+                          disabled={submitting}
+                        >
+                          <Check className="w-3.5 h-3.5 mr-1" />
+                          保存
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )
-          })
+              )
+            })}
+          </div>
         )}
       </div>
     </div>

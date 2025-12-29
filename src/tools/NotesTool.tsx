@@ -77,9 +77,11 @@ export const NotesTool: React.FC = () => {
 
   const loadNotes = async () => {
     if (!user) return
+    console.log('[NotesTool] loadNotes START', Date.now())
     setLoading(true)
     setError(null)
     try {
+      console.log('[NotesTool] Sending notes request...', Date.now())
       const { data, error } = await supabase
         .from('notes')
         .select('id,user_id,title,content,format,order_index,created_at,updated_at')
@@ -87,6 +89,7 @@ export const NotesTool: React.FC = () => {
         .order('order_index', { ascending: true })
         .order('updated_at', { ascending: false })
 
+      console.log('[NotesTool] Notes response received', { count: data?.length, error, timestamp: Date.now() })
       if (error) throw error
       const list = (data || []) as Note[]
       setNotes(list)
@@ -96,16 +99,38 @@ export const NotesTool: React.FC = () => {
         setActiveId((prev) => prev || firstId)
       }
     } catch (e: any) {
+      console.error('[NotesTool] loadNotes ERROR', e)
       setError(e.message || '加载失败')
     } finally {
       setLoading(false)
+      console.log('[NotesTool] loadNotes END', Date.now())
     }
   }
 
   useEffect(() => {
     loadNotes()
+
+    const onVisible = (e?: Event) => {
+      if (e?.type === 'focus' || document.visibilityState === 'visible') {
+        console.log('[NotesTool] Tab became visible, scheduling loadNotes', { eventType: e?.type, timestamp: Date.now() })
+        // next tick to avoid running during focus/paint edge-cases
+        requestAnimationFrame(() => loadNotes())
+      }
+    }
+
+    window.addEventListener('focus', onVisible)
+    window.addEventListener('pageshow', onVisible)
+    document.addEventListener('visibilitychange', onVisible)
+
+    return () => {
+      window.removeEventListener('focus', onVisible)
+      window.removeEventListener('pageshow', onVisible)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
+
 
   const scheduleSave = (id: string, patch: Partial<Pick<Note, 'title' | 'content' | 'format' | 'order_index'>>) => {
     if (!user) return
@@ -334,7 +359,16 @@ export const NotesTool: React.FC = () => {
           <div className="border border-border rounded-lg bg-muted/10 overflow-hidden flex flex-col min-h-0">
             {/* Tabs */}
             <div className="border-b border-border bg-background/30">
-              <div className="flex items-center gap-1 overflow-x-auto px-2 py-2">
+              <div 
+                className="flex items-center gap-1 overflow-x-auto px-2 py-2"
+                onDoubleClick={(e) => {
+                  // 双击空白区域新建笔记
+                  if (e.target === e.currentTarget) {
+                    handleCreate()
+                  }
+                }}
+                title="双击空白处新建笔记"
+              >
                 {openTabs.map((t) => {
                   const isActive = t.id === activeId
                   return (
@@ -377,7 +411,7 @@ export const NotesTool: React.FC = () => {
                   )
                 })}
                 {openTabs.length === 0 && (
-                  <div className="text-xs text-muted-foreground px-2">没有打开的标签页</div>
+                  <div className="text-xs text-muted-foreground px-2">没有打开的标签页（双击此处新建）</div>
                 )}
               </div>
             </div>
@@ -459,7 +493,7 @@ export const NotesTool: React.FC = () => {
 
               <div className="p-4 min-h-0 overflow-auto">
                 {activeNote?.format === 'markdown' ? (
-                  <div className="markdown max-w-none">
+                  <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-em:text-foreground prose-code:text-primary prose-code:bg-muted/50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border prose-blockquote:border-primary/40 prose-blockquote:text-muted-foreground prose-a:text-primary prose-li:text-foreground prose-th:text-foreground prose-td:text-foreground prose-hr:border-border">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{activeNote.content || ''}</ReactMarkdown>
                   </div>
                 ) : (

@@ -9,6 +9,7 @@ interface ToolState {
   bindUser: (userId: string | null) => Promise<void>
   toggleFavorite: (id: string) => void
   moveFavorite: (sourceId: string, targetId: string) => void
+  pinToTop: (id: string) => void
   isFavorite: (id: string) => boolean
 }
 
@@ -115,6 +116,13 @@ export const useToolStore = create<ToolState>()(
           const next = [...favorites]
           const [moved] = next.splice(from, 1)
           next.splice(to, 0, moved)
+          setFavorites(next)
+        },
+
+        pinToTop: (id) => {
+          const { favorites } = get()
+          if (!favorites.includes(id)) return
+          const next = [id, ...favorites.filter((fid) => fid !== id)]
           setFavorites(next)
         },
 

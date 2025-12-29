@@ -32,30 +32,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   fetchProfile: async (userId) => {
+    console.log('[fetchProfile] START', { userId, timestamp: Date.now() })
     const hadProfile = !!get().profile
     if (!hadProfile) set({ loading: true })
 
-    const withTimeout = async <T,>(p: PromiseLike<T>, ms: number): Promise<T> => {
-      return await Promise.race([
-        Promise.resolve(p),
-        new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Profile request timeout')), ms)),
-      ])
+    const fetchOnce = async () => {
+      const controller = new AbortController()
+      const timer = window.setTimeout(() => controller.abort(), 8000)
+      try {
+        console.log('[fetchProfile] Sending request...', Date.now())
+        const q: any = supabase.from('user_profiles').select('is_activated, email').eq('id', userId).single()
+        const { data, error } = await (typeof q.abortSignal === 'function' ? q.abortSignal(controller.signal) : q)
+        console.log('[fetchProfile] Response received', { data, error, timestamp: Date.now() })
+        if (error) throw error
+        set({ profile: data, loading: false })
+        return true
+      } finally {
+        window.clearTimeout(timer)
+      }
     }
-
 
     let retries = 3
     while (retries > 0) {
       try {
-        const { data, error } = await withTimeout(
-          supabase.from('user_profiles').select('is_activated, email').eq('id', userId).single(),
-          8000
-        )
-
-        if (error) throw error
-        set({ profile: data, loading: false })
-        return
+        const ok = await fetchOnce()
+        if (ok) {
+          console.log('[fetchProfile] SUCCESS', Date.now())
+          return
+        }
       } catch (error) {
-        console.error(`Error fetching profile (retries left: ${retries - 1}):`, error)
+        console.error(`[fetchProfile] Error (retries left: ${retries - 1}):`, error)
         retries--
         if (retries > 0) {
           await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -63,8 +69,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     }
 
+    console.log('[fetchProfile] FAILED after retries', Date.now())
     set({ loading: false })
   },
+
 
 
 
@@ -83,16 +91,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, session?.user?.id)
+      console.log('[onAuthStateChange]', { 
+        event, 
+        userId: session?.user?.id, 
+        hasProfile: !!get().profile,
+        timestamp: Date.now() 
+      })
       if (session?.user) {
+        const prevUserId = get().user?.id
         set({ user: session.user, initialized: true })
-        await get().fetchProfile(session.user.id)
+
+        // CRITICAL: Skip fetchProfile on tab focus recovery to avoid blocking other requests
+        // Only fetch profile on true auth changes (initial load, user change, explicit update)
+        const shouldFetch =
+          (event === 'INITIAL_SESSION' && !get().profile) ||
+          event === 'USER_UPDATED' ||
+          (prevUserId && prevUserId !== session.user.id)
+
+        console.log('[onAuthStateChange] shouldFetch?', shouldFetch, { event, hasProfile: !!get().profile })
+        
+        if (shouldFetch) {
+          await get().fetchProfile(session.user.id)
+        }
       } else {
         set({ user: null, profile: null, initialized: true, loading: false })
       }
     })
 
-
     set({ initialized: true, loading: false })
   }
 }))
+

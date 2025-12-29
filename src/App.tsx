@@ -9,18 +9,28 @@ import { Loader2 } from 'lucide-react'
 
 import { Sidebar } from './components/Sidebar'
 import { ThemeGate } from './components/ThemeGate'
+import { FocusModeWidget } from './components/FocusModeWidget'
+import { CommandPalette } from './components/CommandPalette'
 
-const DashboardLayout = ({ children }: { children: React.ReactNode }) => (
-  <div className="min-h-screen bg-background flex">
-    <ThemeGate />
-    <Sidebar />
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <main className="flex-1 overflow-y-auto p-8 bg-background">
-        {children}
-      </main>
+const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
+  const { isSubscribed } = useComponentStore()
+
+  return (
+    <div className="h-screen bg-background flex overflow-hidden">
+      <ThemeGate />
+      <div className="shrink-0 h-screen">
+        <Sidebar />
+      </div>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 overflow-y-auto p-8 bg-background">
+          {children}
+        </main>
+      </div>
+      {isSubscribed('focus') && <FocusModeWidget />}
+      {isSubscribed('search') && <CommandPalette />}
     </div>
-  </div>
-)
+  )
+}
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, profile, loading, initialized, initialize } = useAuthStore()
@@ -37,7 +47,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
 
-  if (!initialized || (loading && user && !profile)) {
+
+  if (!initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-12 h-12 text-primary animate-spin" />
