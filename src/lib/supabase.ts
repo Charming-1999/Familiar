@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://lmvlkaphndwtucbofhtz.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtdmxrYXBobmR3dHVjYm9maHR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4Njc5NzAsImV4cCI6MjA4MjQ0Mzk3MH0.tLMOVUsY3l4lcdgK5cd7LHixP1ToxlH_WTA_Md7FN00'
+
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase credentials not found. Authentication will not work.')
