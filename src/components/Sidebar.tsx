@@ -29,6 +29,7 @@ import {
   Palette,
   FileText,
   Image as ImageIcon,
+  Sparkles,
   Star,
   Pin
 } from 'lucide-react'
@@ -70,6 +71,7 @@ const iconMap: Record<string, any> = {
   'cron': Clock,
   'markdown': FileText,
   'image': ImageIcon,
+  'nanobanana': Sparkles,
 }
 
 type ToolMeta = { id: string; name: string; icon: string }
@@ -93,6 +95,7 @@ const TOOL_META: ToolMeta[] = [
   { id: 'sitevault', name: '精选网站', icon: 'sitevault' },
   { id: 'todolist', name: 'TodoList', icon: 'todolist' },
   { id: 'cron', name: 'Cron 表达式', icon: 'cron' },
+  { id: 'nanobanana', name: 'NanoBanana 生图', icon: 'nanobanana' },
   { id: 'image', name: '图片工具集', icon: 'image' },
 ]
 
@@ -422,7 +425,9 @@ export const Sidebar: React.FC = () => {
               <option value="light">白色</option>
               <option value="transparent">透明</option>
               <option value="pixel">复古像素</option>
+              <option value="ios">iOS 风格</option>
               <option value="neon">赛博霓虹</option>
+
               <option value="minimal">极简灰阶</option>
               <option value="green">护眼绿</option>
               <option value="deepsea">深海蓝</option>

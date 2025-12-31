@@ -7,7 +7,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase credentials not found. Authentication will not work.')
 }
 
-const FETCH_TIMEOUT_MS = 10000
+const FETCH_TIMEOUT_MS = 60000
+
 
 const fetchWithTimeout: typeof fetch = async (input, init) => {
   const controller = new AbortController()
@@ -29,7 +30,8 @@ const fetchWithTimeout: typeof fetch = async (input, init) => {
 export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
   auth: {
     persistSession: true,
-    autoRefreshToken: false,
+    autoRefreshToken: true,
+
     detectSessionInUrl: true,
   },
   global: {

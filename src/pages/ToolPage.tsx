@@ -19,7 +19,9 @@ import { PromptVaultTool } from '../tools/PromptVaultTool'
 import { SiteVaultTool } from '../tools/SiteVaultTool'
 import { CronTool } from '../tools/CronTool'
 import { ImageTool } from '../tools/ImageTool'
+import { NanoBananaTool } from '../tools/NanoBananaTool'
 import { Button } from '../components/Button'
+
 
 
 
@@ -48,6 +50,7 @@ const TOOL_COMPONENTS: Record<string, React.FC> = {
   'sitevault': SiteVaultTool,
   'cron': CronTool,
   'image': ImageTool,
+  'nanobanana': NanoBananaTool,
 }
 
 
@@ -75,7 +78,7 @@ export const ToolPage: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 shrink-0">
         <Button 
           variant="ghost" 
           size="sm" 
@@ -99,7 +102,7 @@ export const ToolPage: React.FC = () => {
         </Button>
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 flex flex-col">
         <Component />
       </div>
     </div>

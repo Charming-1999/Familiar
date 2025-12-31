@@ -73,9 +73,10 @@
 
   :root[data-theme='pixel'] body {
     font-family: 'VT323', monospace;
-    font-size: 1.5rem;
-    line-height: 1.2;
-    letter-spacing: 0.05em;
+    /* 原来 1.5rem 在 Windows 下会让原生 select 下拉列表显示不全 */
+    font-size: 1.125rem;
+    line-height: 1.25;
+    letter-spacing: 0.03em;
   }
 
   :root[data-theme='pixel'] h1,
@@ -135,9 +136,26 @@
     border-radius: 0 !important;
     border: 3px solid hsl(var(--border)) !important;
     background: #ffffff !important;
+    color: hsl(var(--foreground)) !important;
     font-family: 'VT323', monospace;
-    font-size: 1.5rem;
-    padding: 0.5rem;
+    /* 原来 1.5rem 会让表单控件和下拉选项过大 */
+    font-size: 1rem;
+    line-height: 1.4;
+    padding: 0.45rem 0.6rem;
+  }
+
+  /* 兜底：确保 option 不会出现白底白字（不同浏览器支持度不同，但能覆盖多数场景） */
+  :root select option {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+
+  :root[data-theme='pixel'] select option {
+    background-color: #ffffff;
+    color: #111827;
+    font-family: 'VT323', monospace;
+    font-size: 1rem;
+    line-height: 1.4;
   }
 
   /* IMPORTANT: avoid breaking Monaco editors (they rely on internal textarea/input) */
@@ -151,6 +169,28 @@
     font-family: inherit !important;
     font-size: inherit !important;
     letter-spacing: inherit !important;
+  }
+
+  /* IMPORTANT: avoid breaking Bytemd editor under pixel theme (native rules are too aggressive) */
+  :root[data-theme='pixel'] .notes-bytemd,
+  :root[data-theme='pixel'] .notes-bytemd * {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+  }
+
+  :root[data-theme='pixel'] .notes-bytemd .bytemd {
+    background: #ffffff !important;
+    border: 3px solid hsl(var(--border)) !important;
+    border-radius: 0 !important;
+  }
+
+  :root[data-theme='pixel'] .notes-bytemd .bytemd-toolbar,
+  :root[data-theme='pixel'] .notes-bytemd .bytemd-status {
+    background: #ffffff !important;
+    border-color: hsl(var(--border)) !important;
   }
 
   :root[data-theme='pixel'] .bg-muted\/20,
@@ -309,6 +349,262 @@
     --destructive-foreground: 0 0% 98%;
 
     --border: 222 18% 24%;
+  }
+
+  :root[data-theme='ios'] {
+    /* iOS-like (light, subtle, high readability) */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+
+    --primary: 211 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 30% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 24% 94%;
+    --muted-foreground: 215 16% 40%;
+
+    --accent: 211 100% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 14% 86%;
+  }
+
+  :root[data-theme='ios'] body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: 0;
+    text-rendering: optimizeLegibility;
+  }
+
+  :root[data-theme='ios'] aside,
+  :root[data-theme='ios'] .glass-card,
+  :root[data-theme='ios'] .backdrop-blur-xl,
+  :root[data-theme='ios'] .backdrop-blur-md {
+    background: hsl(var(--background) / 0.78) !important;
+    border: 1px solid hsl(var(--border) / 0.9) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border-radius: 1.25rem !important;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+  }
+
+  :root[data-theme='ios'] button {
+    border-radius: 0.95rem !important;
+    border-width: 1px !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+  }
+
+  :root[data-theme='ios'] button:active {
+    transform: scale(0.99);
+  }
+
+  :root[data-theme='ios'] input,
+  :root[data-theme='ios'] select,
+  :root[data-theme='ios'] textarea {
+    border-radius: 0.95rem !important;
+    border: 1px solid hsl(var(--border)) !important;
+    background: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+  }
+
+  :root[data-theme='ios'] input:focus,
+  :root[data-theme='ios'] select:focus,
+  :root[data-theme='ios'] textarea:focus {
+    outline: none;
+    border-color: hsl(var(--primary) / 0.65) !important;
+    box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.15);
+  }
+
+  :root[data-theme='ios'] body {
+    background-image:
+      radial-gradient(circle at 10% 15%, rgba(0, 122, 255, 0.10), transparent 40%),
+      radial-gradient(circle at 85% 20%, rgba(255, 45, 85, 0.08), transparent 45%),
+      radial-gradient(circle at 30% 90%, rgba(52, 199, 89, 0.08), transparent 55%);
+    background-attachment: fixed;
+  }
+
+  /* Notes: Bytemd layout + theme overrides (fix preview rendering/height issues) */
+  .notes-bytemd {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .notes-bytemd .bytemd {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .notes-bytemd .bytemd-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    overflow: hidden;
+  }
+
+  .notes-bytemd .bytemd-split {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+
+  .notes-bytemd .bytemd-split > * {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .notes-bytemd .bytemd-editor,
+  .notes-bytemd .bytemd-preview {
+    height: 100% !important;
+    min-height: 0;
+    overflow: auto !important;
+  }
+
+  .notes-bytemd .CodeMirror {
+    height: 100% !important;
+    background: transparent !important;
+  }
+
+  .notes-bytemd .CodeMirror-scroll {
+    min-height: 100%;
+  }
+
+  /* Markdown preview styling (Tailwind preflight resets list/heading defaults) */
+  .notes-bytemd .bytemd-preview .markdown-body {
+    background: transparent !important;
+    color: inherit !important;
+    font-size: inherit;
+    line-height: 1.65;
+    padding: 16px 18px;
+
+    /* github-markdown-css defaults */
+    max-width: none !important;
+    margin: 0 !important;
+  }
+
+  .notes-bytemd .bytemd-preview .markdown-body ol {
+    list-style: decimal !important;
+    padding-left: 1.5rem !important;
+  }
+
+  .notes-bytemd .bytemd-preview .markdown-body ul {
+    list-style: disc !important;
+    padding-left: 1.5rem !important;
+  }
+
+  .notes-bytemd .bytemd-preview .markdown-body li {
+    display: list-item;
+  }
+
+  .notes-bytemd .bytemd-preview .markdown-body h1,
+  .notes-bytemd .bytemd-preview .markdown-body h2,
+  .notes-bytemd .bytemd-preview .markdown-body h3,
+  .notes-bytemd .bytemd-preview .markdown-body h4 {
+    color: hsl(var(--foreground));
+  }
+
+  /* Make preview readable in all app themes */
+  :root .notes-bytemd .bytemd {
+    background: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 0.75rem;
+  }
+  :root .notes-bytemd .bytemd-toolbar,
+  :root .notes-bytemd .bytemd-status {
+    background: hsl(var(--secondary)) !important;
+    color: hsl(var(--secondary-foreground)) !important;
+    border-color: hsl(var(--border)) !important;
+  }
+  :root .notes-bytemd .bytemd-preview {
+    background: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+  :root .notes-bytemd .bytemd-preview a {
+    color: hsl(var(--primary)) !important;
+  }
+
+  /* Highlight.js (github.css is light) – add a dark-friendly override inside preview */
+  :root[data-theme='dark'] .notes-bytemd .bytemd-preview pre,
+  :root[data-theme='neon'] .notes-bytemd .bytemd-preview pre,
+  :root[data-theme='deepsea'] .notes-bytemd .bytemd-preview pre {
+    background: hsl(var(--muted)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+  }
+  :root[data-theme='dark'] .notes-bytemd .bytemd-preview code,
+  :root[data-theme='neon'] .notes-bytemd .bytemd-preview code,
+  :root[data-theme='deepsea'] .notes-bytemd .bytemd-preview code {
+    color: hsl(var(--foreground)) !important;
+    background: hsl(var(--muted) / 0.6) !important;
+    border: 1px solid hsl(var(--border) / 0.8) !important;
+  }
+  :root[data-theme='dark'] .notes-bytemd .bytemd-preview .hljs,
+  :root[data-theme='neon'] .notes-bytemd .bytemd-preview .hljs,
+  :root[data-theme='deepsea'] .notes-bytemd .bytemd-preview .hljs {
+    background: transparent !important;
+    color: hsl(var(--foreground)) !important;
+  }
+
+  /* Notes: iOS polish */
+  :root[data-theme='ios'] .notes-tool h2 {
+    font-style: normal !important;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  :root[data-theme='ios'] .notes-tool .border {
+    border-color: hsl(var(--border) / 0.9) !important;
+  }
+
+  :root[data-theme='ios'] .notes-tool .bg-muted\/10 {
+    background: hsl(var(--secondary) / 0.55) !important;
+  }
+
+  :root[data-theme='ios'] .notes-bytemd .bytemd {
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 1.125rem !important;
+    overflow: hidden;
+    background: hsl(var(--background)) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  }
+
+  :root[data-theme='ios'] .notes-bytemd .bytemd-toolbar,
+  :root[data-theme='ios'] .notes-bytemd .bytemd-status {
+    background: hsl(var(--secondary)) !important;
+    border-color: hsl(var(--border)) !important;
+  }
+
+  :root[data-theme='ios'] .notes-bytemd .bytemd-toolbar-icon {
+    border-radius: 10px;
+  }
+
+  :root[data-theme='ios'] .notes-bytemd .bytemd-toolbar-icon:hover {
+    background: hsl(var(--muted)) !important;
+  }
+
+  :root[data-theme='ios'] .notes-bytemd .bytemd-preview {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  :root[data-theme='ios'] .notes-bytemd .bytemd-preview img {
+    border-radius: 12px;
   }
 
   body {

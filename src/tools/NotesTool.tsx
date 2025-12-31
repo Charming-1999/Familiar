@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { NotebookPen, Plus, Save, X, Search, GripVertical, Trash2, FileText, FileCode2 } from 'lucide-react'
+
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
 import { cn } from '../lib/utils'
@@ -20,6 +19,16 @@ type Note = {
   created_at: string
   updated_at: string
 }
+
+type BytemdEditorComponent = React.ComponentType<{
+  value: string
+  plugins: any[]
+  onChange: (v: string) => void
+  mode?: 'split' | 'tab' | 'auto'
+  previewDebounce?: number
+  placeholder?: string
+}>
+
 
 function clampTitleInput(s: string) {
   return s.slice(0, 80)
@@ -42,6 +51,12 @@ export const NotesTool: React.FC = () => {
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const [savingIds, setSavingIds] = useState<Record<string, boolean>>({})
+
+  // Bytemd is heavy; load it only when a Markdown note is active.
+  const [BytemdEditor, setBytemdEditor] = useState<BytemdEditorComponent | null>(null)
+  const [bytemdPlugins, setBytemdPlugins] = useState<any[] | null>(null)
+  const [bytemdLoadError, setBytemdLoadError] = useState<string | null>(null)
+
 
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [paletteQuery, setPaletteQuery] = useState('')
@@ -285,8 +300,71 @@ export const NotesTool: React.FC = () => {
     }
   }, [paletteOpen])
 
+  useEffect(() => {
+    if (activeNote?.format !== 'markdown') return
+    if (BytemdEditor && bytemdPlugins) return
+
+    let cancelled = false
+    ;(async () => {
+      try {
+        const [
+          reactMod,
+          gfm,
+          highlight,
+          math,
+          mermaid,
+          gemoji,
+          breaks,
+          frontmatter,
+          mediumZoom,
+        ] = await Promise.all([
+          import('@bytemd/react'),
+          import('@bytemd/plugin-gfm'),
+          import('@bytemd/plugin-highlight'),
+          import('@bytemd/plugin-math'),
+          import('@bytemd/plugin-mermaid'),
+          import('@bytemd/plugin-gemoji'),
+          import('@bytemd/plugin-breaks'),
+          import('@bytemd/plugin-frontmatter'),
+          import('@bytemd/plugin-medium-zoom'),
+        ])
+
+        if (cancelled) return
+
+        const callPlugin = (m: any) => {
+          const fn = m?.default ?? m
+          return typeof fn === 'function' ? fn() : null
+        }
+
+        const plugins = [
+          callPlugin(gfm),
+          callPlugin(breaks),
+          callPlugin(frontmatter),
+          callPlugin(gemoji),
+          callPlugin(highlight),
+          callPlugin(math),
+          callPlugin(mermaid),
+          callPlugin(mediumZoom),
+        ].filter(Boolean)
+
+        setBytemdEditor(() => (reactMod as any).Editor)
+        setBytemdPlugins(plugins)
+        setBytemdLoadError(null)
+      } catch (e: any) {
+        if (cancelled) return
+        console.error('[NotesTool] Bytemd load failed', e)
+        setBytemdLoadError(e?.message || 'Markdown 编辑器加载失败')
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeNote?.format, BytemdEditor, bytemdPlugins])
+
+
   return (
-    <div className="space-y-4 h-full flex flex-col">
+    <div className="notes-tool flex-1 min-h-0 flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <NotebookPen className="w-5 h-5 text-primary" />
@@ -312,9 +390,9 @@ export const NotesTool: React.FC = () => {
           请先登录后使用“随心记”。笔记数据会绑定当前账户并同步到云端。
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[300px,1fr] gap-4 flex-1 min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-[300px,1fr] gap-4 flex-1 min-h-0 overflow-hidden">
           {/* Left list */}
-          <div className="border border-border rounded-lg bg-muted/10 overflow-hidden flex flex-col min-h-0">
+          <div className="border border-border rounded-lg bg-muted/10 overflow-hidden flex flex-col min-h-0 h-full">
             <div className="px-3 py-2 border-b border-border flex items-center justify-between">
               <div className="text-sm font-semibold text-foreground">我的笔记</div>
               <button className="text-xs text-muted-foreground hover:text-primary" onClick={loadNotes} disabled={loading}>
@@ -475,35 +553,58 @@ export const NotesTool: React.FC = () => {
             </div>
 
             {/* Editor body */}
-            <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2">
-              <div className="p-4 border-r border-border/60 min-h-0">
-                <textarea
-                  className="w-full h-full bg-muted/10 border border-border rounded-lg p-4 font-mono text-sm resize-none focus:outline-none focus:border-primary/50 transition-colors"
-                  placeholder="开始记录...（自动保存到云端）"
-                  value={activeNote?.content || ''}
-                  onChange={(e) => {
-                    if (!activeNote) return
-                    const content = e.target.value
-                    setNotes((prev) => prev.map((n) => (n.id === activeNote.id ? { ...n, content } : n)))
-                    scheduleSave(activeNote.id, { content })
-                  }}
-                  disabled={!activeNote}
-                />
-              </div>
-
-              <div className="p-4 min-h-0 overflow-auto">
-                {activeNote?.format === 'markdown' ? (
-                  <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-em:text-foreground prose-code:text-primary prose-code:bg-muted/50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border prose-blockquote:border-primary/40 prose-blockquote:text-muted-foreground prose-a:text-primary prose-li:text-foreground prose-th:text-foreground prose-td:text-foreground prose-hr:border-border">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{activeNote.content || ''}</ReactMarkdown>
+            {activeNote?.format === 'markdown' ? (
+              <div className="flex-1 min-h-0 p-4 overflow-hidden flex flex-col">
+                {bytemdLoadError ? (
+                  <div className="h-full rounded-lg border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-400">
+                    {bytemdLoadError}
+                  </div>
+                ) : BytemdEditor && bytemdPlugins ? (
+                  <div className="notes-bytemd flex-1 min-h-0 w-full">
+                    <BytemdEditor
+                      value={activeNote?.content || ''}
+                      plugins={bytemdPlugins}
+                      mode="split"
+                      previewDebounce={250}
+                      placeholder="开始记录 Markdown…（自动保存到云端）"
+                      onChange={(content) => {
+                        if (!activeNote) return
+                        setNotes((prev) => prev.map((n) => (n.id === activeNote.id ? { ...n, content } : n)))
+                        scheduleSave(activeNote.id, { content })
+                      }}
+                    />
                   </div>
                 ) : (
-
-                  <div className="text-sm text-muted-foreground">
-                    纯文本模式不提供渲染预览。切换为 Markdown 可在此处预览效果。
+                  <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+                    正在加载 Markdown 编辑器…
                   </div>
                 )}
               </div>
-            </div>
+            ) : (
+              <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2">
+                <div className="p-4 border-r border-border/60 min-h-0">
+                  <textarea
+                    className="w-full h-full bg-muted/10 border border-border rounded-lg p-4 font-mono text-sm resize-none focus:outline-none focus:border-primary/50 transition-colors"
+                    placeholder="开始记录...（自动保存到云端）"
+                    value={activeNote?.content || ''}
+                    onChange={(e) => {
+                      if (!activeNote) return
+                      const content = e.target.value
+                      setNotes((prev) => prev.map((n) => (n.id === activeNote.id ? { ...n, content } : n)))
+                      scheduleSave(activeNote.id, { content })
+                    }}
+                    disabled={!activeNote}
+                  />
+                </div>
+
+                <div className="p-4 min-h-0 overflow-auto">
+                  <div className="text-sm text-muted-foreground">
+                    纯文本模式不提供渲染预览。切换为 Markdown 将启用 Bytemd 编辑器（支持工具栏、实时预览等）。
+                  </div>
+                </div>
+              </div>
+            )}
+
 
             <div className="px-4 py-2 border-t border-border text-[11px] text-muted-foreground flex items-center justify-between">
               <div>

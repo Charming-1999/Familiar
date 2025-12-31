@@ -22,6 +22,7 @@ import {
   Globe,
   FileText,
   Image as ImageIcon,
+  Sparkles,
 } from 'lucide-react'
 
 const iconMap: Record<string, any> = {
@@ -45,6 +46,7 @@ const iconMap: Record<string, any> = {
   cron: Clock,
   markdown: FileText,
   image: ImageIcon,
+  nanobanana: Sparkles,
 }
 
 type ToolItem = {
@@ -76,6 +78,7 @@ const TOOLS: ToolItem[] = [
   { id: 'cron', name: 'Cron 表达式生成器', icon: 'cron', path: '/tool/cron', keywords: ['cron', '定时', '表达式'] },
   { id: 'markdown', name: 'Markdown 编辑器', icon: 'markdown', path: '/tool/markdown', keywords: ['markdown', 'md', '编辑器'] },
   { id: 'image', name: '图片工具集', icon: 'image', path: '/tool/image', keywords: ['图片', 'image', '压缩'] },
+  { id: 'nanobanana', name: 'NanoBanana 生图', icon: 'nanobanana', path: '/tool/nanobanana', keywords: ['生图', '绘画', 'nano', 'banana', 'pro', 'image'] },
 ]
 
 export const CommandPalette: React.FC = () => {

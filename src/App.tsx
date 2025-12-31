@@ -16,13 +16,13 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { isSubscribed } = useComponentStore()
 
   return (
-    <div className="h-screen bg-background flex overflow-hidden">
+    <div className="h-screen bg-background flex">
       <ThemeGate />
-      <div className="shrink-0 h-screen">
+      <div className="shrink-0 h-screen overflow-y-auto">
         <Sidebar />
       </div>
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-y-auto p-8 bg-background">
+      <div className="flex-1 flex flex-col min-h-0">
+        <main className="flex-1 min-h-0 bg-background p-8 flex flex-col">
           {children}
         </main>
       </div>

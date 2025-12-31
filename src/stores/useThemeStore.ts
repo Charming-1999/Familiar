@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type ThemeId = 'dark' | 'light' | 'pixel' | 'transparent' | 'neon' | 'minimal' | 'green' | 'deepsea' | 'cartoon'
+export type ThemeId = 'dark' | 'light' | 'pixel' | 'transparent' | 'neon' | 'minimal' | 'green' | 'deepsea' | 'ios' | 'cartoon'
+
 
 type ThemeState = {
   theme: ThemeId
@@ -10,11 +11,12 @@ type ThemeState = {
 
 function normalizeThemeId(t: any): ThemeId {
   if (t === 'cartoon') return 'pixel'
-  if (t === 'dark' || t === 'light' || t === 'pixel' || t === 'transparent' || t === 'neon' || t === 'minimal' || t === 'green' || t === 'deepsea') {
+  if (t === 'dark' || t === 'light' || t === 'pixel' || t === 'transparent' || t === 'neon' || t === 'minimal' || t === 'green' || t === 'deepsea' || t === 'ios') {
     return t
   }
   return 'dark'
 }
+
 
 function applyThemeToDom(t: ThemeId) {
   document.documentElement.dataset.theme = normalizeThemeId(t)

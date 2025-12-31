@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Star, Code2, Binary, Clock, Link2, ShieldCheck, ChevronRight, Fingerprint, Search, FileCode2, Terminal, NotebookPen, Bot, ListTodo, PanelsLeftRight, QrCode, BookOpen, Globe, Image as ImageIcon } from 'lucide-react'
+import { Star, Code2, Binary, Clock, Link2, ShieldCheck, ChevronRight, Fingerprint, Search, FileCode2, Terminal, NotebookPen, Bot, ListTodo, PanelsLeftRight, QrCode, BookOpen, Globe, Image as ImageIcon, Sparkles } from 'lucide-react'
 
 
 
@@ -30,6 +30,7 @@ const ALL_TOOLS = [
   { id: 'sitevault', name: '精选网站', description: '沉淀高质量站点链接：全站可见，支持新增/编辑/删除本人', icon: Globe, category: 'dev' },
   { id: 'todolist', name: 'TodoList', description: '简单待办清单：增删勾选，支持收藏区 hover 快捷完成', icon: ListTodo, category: 'dev' },
   { id: 'cron', name: 'Cron 表达式生成器', description: '可视化生成 Cron 定时任务表达式，支持预设和自定义配置', icon: Clock, category: 'dev' },
+  { id: 'nanobanana', name: 'NanoBanana 生图', description: 'nano-banana-pro 系列生图：支持参考图、比例与分辨率，展示进度与结果', icon: Sparkles, category: 'dev' },
   { id: 'image', name: '图片工具集', description: 'Base64 转换、尺寸调整、图片压缩等多合一图片处理工具', icon: ImageIcon, category: 'convert' },
 ]
 

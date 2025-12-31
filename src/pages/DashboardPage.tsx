@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Star, Code2, Binary, Clock, Link2, ShieldCheck, Plus, Fingerprint, Search, FileCode2, Terminal, NotebookPen, Bot, ListTodo, PanelsLeftRight, QrCode, BookOpen, Globe, FileText, Image as ImageIcon } from 'lucide-react'
+import { Star, Code2, Binary, Clock, Link2, ShieldCheck, Plus, Fingerprint, Search, FileCode2, Terminal, NotebookPen, Bot, ListTodo, PanelsLeftRight, QrCode, BookOpen, Globe, FileText, Image as ImageIcon, Sparkles } from 'lucide-react'
 
 
 
@@ -32,6 +32,7 @@ const iconMap: Record<string, any> = {
   'cron': Clock,
   'markdown': FileText,
   'image': ImageIcon,
+  'nanobanana': Sparkles,
 }
 
 
@@ -57,6 +58,7 @@ const TOOL_NAMES: Record<string, string> = {
   'todolist': 'TodoList',
   'cron': 'Cron 表达式',
   'image': '图片工具集',
+  'nanobanana': 'NanoBanana 生图',
 }
 
 
