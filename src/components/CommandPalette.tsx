@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Command } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useToolStore } from '../stores/useToolStore'
 import { useShortcutStore } from '../stores/useShortcutStore'

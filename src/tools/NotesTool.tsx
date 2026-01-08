@@ -147,7 +147,7 @@ export const NotesTool: React.FC = () => {
           // 手动触发保存
           setSavingIds((m) => ({ ...m, [activeNote.id]: true }))
           const payload = { updated_at: new Date().toISOString() }
-          supabase.from('notes').update(payload).eq('id', activeNote.id).eq('user_id', user?.id)
+          Promise.resolve(supabase.from('notes').update(payload).eq('id', activeNote.id).eq('user_id', user?.id))
             .then(({ error }) => {
               if (error) throw error
             })

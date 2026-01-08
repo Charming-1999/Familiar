@@ -57,7 +57,7 @@ export function parseShortcut(shortcut: string): (e: KeyboardEvent) => boolean {
   const parts = normalized.toLowerCase().split('+').map(p => p.trim())
   
   return (e: KeyboardEvent): boolean => {
-    const modifiers = []
+    const modifiers: string[] = []
     
     if (e.ctrlKey) modifiers.push('ctrl')
     if (e.metaKey) modifiers.push('meta')  // Cmd key
@@ -65,9 +65,6 @@ export function parseShortcut(shortcut: string): (e: KeyboardEvent) => boolean {
     if (e.shiftKey) modifiers.push('shift')
     
     const key = e.key.toLowerCase()
-    
-    // 构建当前事件的快捷键表示
-    const eventKeys = [...modifiers, key]
     
     // 检查是否匹配
     return parts.every(part => {
