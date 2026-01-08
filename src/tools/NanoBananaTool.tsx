@@ -142,6 +142,7 @@ export const NanoBananaTool: React.FC = () => {
   const [prompt, setPrompt] = useState('')
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('auto')
   const [imageSize, setImageSize] = useState<ImageSize>('1K')
+  const [numImages, setNumImages] = useState(2)
   const [urlsText, setUrlsText] = useState('')
   const [uploading, setUploading] = useState(false)
 
@@ -232,6 +233,51 @@ export const NanoBananaTool: React.FC = () => {
     }
   }
 
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault()
+        const file = item.getAsFile()
+        if (!file) continue
+
+        setUploading(true)
+        setError(null)
+        try {
+          const fileExt = item.type.split('/')[1] || 'png'
+          const fileName = `paste-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
+          const filePath = `uploads/${fileName}`
+
+          const { error: uploadError } = await supabase.storage
+            .from('nanobanana_temp')
+            .upload(filePath, file, {
+              cacheControl: '3600',
+              upsert: false
+            })
+
+          if (uploadError) throw uploadError
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('nanobanana_temp')
+            .getPublicUrl(filePath)
+
+          setUrlsText((prev) => {
+            const lines = prev.split('\n').map(l => l.trim()).filter(Boolean)
+            lines.push(publicUrl)
+            return lines.join('\n')
+          })
+        } catch (err: any) {
+          setError(`粘贴上传失败: ${err.message}`)
+        } finally {
+          setUploading(false)
+        }
+        break
+      }
+    }
+  }
+
   const useAsReference = (url: string) => {
     setUrlsText((prev) => {
       const urls = parseUrls(prev)
@@ -278,42 +324,48 @@ export const NanoBananaTool: React.FC = () => {
     try {
       const urls = parseUrls(urlsText)
 
-      const body: any = {
-        model,
-        prompt: p,
-        aspectRatio,
-        webHook: '-1',
-        shutProgress: false,
+      // 如果需要生成多张图片，发送多个任务
+      const tasks: Promise<any>[] = []
+      for (let i = 0; i < numImages; i++) {
+        const body: any = {
+          model,
+          prompt: p,
+          aspectRatio,
+          webHook: '-1',
+          shutProgress: false,
+        }
+
+        if (urls.length > 0) body.urls = urls
+        if (showImageSize) body.imageSize = imageSize
+
+        tasks.push(
+          fetch(`${base}/v1/draw/nano-banana`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${key}`,
+            },
+            body: JSON.stringify(body),
+            signal: controller.signal,
+          }).then(res => res.text()).then(text => safeJsonParse<any>(text))
+        )
       }
 
-      if (urls.length > 0) body.urls = urls
-      if (showImageSize) body.imageSize = imageSize
-
-      const submitRes = await fetch(`${base}/v1/draw/nano-banana`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${key}`,
-        },
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      })
-
-      const submitText = await submitRes.text().catch(() => '')
-      const submitJson = safeJsonParse<any>(submitText)
-
-      if (!submitRes.ok) {
-        throw new Error((submitJson?.msg as string) || submitText || `请求失败（${submitRes.status}）`)
+      // 等待所有任务提交
+      const submitResults = await Promise.all(tasks)
+      
+      // 提取所有任务ID
+      const jobIds: string[] = []
+      for (const result of submitResults) {
+        if (!result) throw new Error('API返回格式错误')
+        const jobId = result?.data?.id || result?.id
+        if (!jobId) throw new Error(result?.msg || '未获取到任务 id')
+        jobIds.push(jobId)
       }
 
-      // webHook = -1 预期返回 { code:0, data:{ id } }
-      const jobId = submitJson?.data?.id || submitJson?.id
-      if (!jobId) {
-        throw new Error(submitJson?.msg || '未获取到任务 id，请检查接口返回')
-      }
-
+      // 初始化job状态
       setJob({
-        id: jobId,
+        id: jobIds.join(','),
         results: [],
         progress: 0,
         status: 'running',
@@ -321,49 +373,69 @@ export const NanoBananaTool: React.FC = () => {
         error: '',
       })
 
-      // 轮询结果
-      while (!controller.signal.aborted) {
+      // 轮询所有任务的结果
+      const allResults: NanoBananaResultItem[] = []
+      let completedCount = 0
+      const jobStatuses = new Map<string, string>()
+
+      while (!controller.signal.aborted && completedCount < jobIds.length) {
         await sleep(1200, controller.signal)
 
-        const r = await fetch(`${base}/v1/draw/result`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${key}`,
-          },
-          body: JSON.stringify({ id: jobId }),
-          signal: controller.signal,
+        const pollPromises = jobIds.map(jobId => 
+          fetch(`${base}/v1/draw/result`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${key}`,
+            },
+            body: JSON.stringify({ id: jobId }),
+            signal: controller.signal,
+          }).then(r => r.text()).then(t => ({ jobId, data: safeJsonParse<any>(t) }))
+        )
+
+        const pollResults = await Promise.all(pollPromises)
+
+        let totalProgress = 0
+        completedCount = 0
+
+        for (const { jobId, data } of pollResults) {
+          if (!data) continue
+
+          const result = data?.data || data
+          const status = (result?.status as string) || 'running'
+          const progress = typeof result?.progress === 'number' ? result.progress : 0
+          
+          jobStatuses.set(jobId, status)
+          totalProgress += progress
+
+          if (status === 'succeeded') {
+            completedCount++
+            const items = Array.isArray(result?.results) ? result.results : []
+            // 避免重复添加
+            for (const item of items) {
+              if (!allResults.find(r => r.url === item.url)) {
+                allResults.push(item)
+              }
+            }
+          } else if (status === 'failed') {
+            throw new Error(result?.failure_reason || result?.error || '生成失败')
+          }
+        }
+
+        // 更新进度
+        const avgProgress = Math.floor(totalProgress / jobIds.length)
+        setJob({
+          id: jobIds.join(','),
+          results: allResults,
+          progress: avgProgress,
+          status: completedCount === jobIds.length ? 'succeeded' : 'running',
+          failure_reason: '',
+          error: '',
         })
-
-        const t = await r.text().catch(() => '')
-        const j = safeJsonParse<any>(t)
-
-        if (!r.ok) {
-          throw new Error((j?.msg as string) || t || `请求失败（${r.status}）`)
-        }
-
-        const data = j?.data || j
-        const next: NanoBananaJob = {
-          id: data?.id || jobId,
-          results: Array.isArray(data?.results) ? data.results : [],
-          progress: typeof data?.progress === 'number' ? data.progress : 0,
-          status: (data?.status as any) || 'running',
-          failure_reason: data?.failure_reason || '',
-          error: data?.error || '',
-        }
-
-        setJob(next)
-
-        if (next.status === 'succeeded') {
-          setSubmitting(false)
-          abortRef.current = null
-          return
-        }
-
-        if (next.status === 'failed') {
-          throw new Error(next.failure_reason || next.error || '生成失败')
-        }
       }
+
+      setSubmitting(false)
+      abortRef.current = null
     } catch (e: any) {
       if (e?.name === 'AbortError') return
       setError(e?.message || '请求失败')
@@ -556,6 +628,22 @@ export const NanoBananaTool: React.FC = () => {
                 </select>
               </div>
 
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground">生成数量（多任务并行）</div>
+                <select
+                  value={numImages}
+                  onChange={(e) => setNumImages(Number(e.target.value))}
+                  className="nanobanana-select w-full h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                >
+                  <option value={1}>1 张</option>
+                  <option value={2}>2 张</option>
+                  <option value={3}>3 张</option>
+                  <option value={4}>4 张</option>
+                  <option value={5}>5 张</option>
+                </select>
+                <div className="text-[11px] text-muted-foreground">会并行发起多个生图任务，汇总所有结果。</div>
+              </div>
+
               {showImageSize ? (
                 <div className="space-y-1">
                   <div className="text-xs text-muted-foreground">分辨率（imageSize）</div>
@@ -646,9 +734,10 @@ export const NanoBananaTool: React.FC = () => {
                   'w-full min-h-[80px] bg-muted/10 border border-border rounded-lg p-3 text-sm font-mono resize-y focus:outline-none focus:border-primary/50 transition-colors',
                   submitting && 'opacity-70'
                 )}
-                placeholder="直接粘贴图片 URL，多条用换行或逗号分隔"
+                placeholder="直接粘贴图片 URL，多条用换行或逗号分隔\n支持 Ctrl+V 粘贴图片文件自动上传"
                 value={urlsText}
                 onChange={(e) => setUrlsText(e.target.value)}
+                onPaste={handlePaste}
               />
             </div>
 

@@ -6,6 +6,7 @@ import { Bot, Send, Square, Trash2, Plus, MessagesSquare } from 'lucide-react'
 import { Button } from '../components/Button'
 import { cn } from '../lib/utils'
 import { useAuthStore } from '../stores/useAuthStore'
+import { useShortcutStore } from '../stores/useShortcutStore'
 import { supabase } from '../lib/supabase'
 
 type ChatRole = 'system' | 'user' | 'assistant'
@@ -266,6 +267,7 @@ function TypingIndicator(props: { label?: string }) {
 
 export const ModelChatTool: React.FC = () => {
   const { user } = useAuthStore()
+  const { getShortcutChecker } = useShortcutStore()
 
   const [model, setModel] = useState<ModelId>('gemini-3-flash')
 
@@ -297,6 +299,33 @@ export const ModelChatTool: React.FC = () => {
   useEffect(() => {
     activeConversationIdRef.current = activeConversationId
   }, [activeConversationId])
+
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const checkSave = getShortcutChecker('save')
+      if (checkSave && checkSave(e)) {
+        e.preventDefault()
+        // ModelChatTool 主要是自动保存，这里可以触发一个视觉反馈
+        // 比如"已保存"提示
+        if (activeConversationId && user) {
+          // 更新对话的 updated_at 字段
+          supabase
+            .from('chat_conversations')
+            .update({ updated_at: new Date().toISOString() })
+            .eq('id', activeConversationId)
+            .eq('user_id', user.id)
+            .then(({ error }) => {
+              if (error) console.error('更新对话时间失败:', error)
+            })
+        }
+        return
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [activeConversationId, user?.id, getShortcutChecker])
 
   const loadConversations = async () => {
 
@@ -419,32 +448,6 @@ export const ModelChatTool: React.FC = () => {
       return
     }
     loadConversations()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id])
-
-  useEffect(() => {
-    if (!user) return
-
-    const onVisible = (e?: Event) => {
-      if (e?.type === 'focus' || document.visibilityState === 'visible') {
-        requestAnimationFrame(() => {
-          loadConversations()
-          const cid = activeConversationIdRef.current
-          if (cid) loadMessages(cid)
-        })
-      }
-    }
-
-    window.addEventListener('focus', onVisible)
-    window.addEventListener('pageshow', onVisible)
-    document.addEventListener('visibilitychange', onVisible)
-
-    return () => {
-      window.removeEventListener('focus', onVisible)
-      window.removeEventListener('pageshow', onVisible)
-      document.removeEventListener('visibilitychange', onVisible)
-    }
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
 

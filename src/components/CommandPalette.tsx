@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Search, Command } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useToolStore } from '../stores/useToolStore'
+import { useShortcutStore } from '../stores/useShortcutStore'
+import { getShortcutDisplayText } from '../lib/shortcuts'
 import {
   Code2,
   Binary,
@@ -87,6 +89,7 @@ export const CommandPalette: React.FC = () => {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const navigate = useNavigate()
   const { favorites } = useToolStore()
+  const { getShortcutChecker } = useShortcutStore()
 
   const filteredTools = useMemo(() => {
     if (!query.trim()) {
@@ -106,11 +109,9 @@ export const CommandPalette: React.FC = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const isMac = navigator.platform.toLowerCase().includes('mac')
-      const mod = isMac ? e.metaKey : e.ctrlKey
-
-      // Ctrl/Cmd + Q 打开
-      if (mod && (e.key === 'q' || e.key === 'Q')) {
+      // 使用配置的快捷键检查命令面板
+      const checkCommandPalette = getShortcutChecker('commandPalette')
+      if (checkCommandPalette && checkCommandPalette(e)) {
         e.preventDefault()
         setIsOpen((prev) => !prev)
         return
@@ -267,8 +268,8 @@ export const CommandPalette: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Command className="w-3 h-3" />
-                    <span>+ Q 快速唤起</span>
+                    <span>{getShortcutDisplayText(useShortcutStore.getState().getShortcutKey('commandPalette'))}</span>
+                    <span>快速唤起</span>
                   </div>
                 </div>
               </div>

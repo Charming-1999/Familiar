@@ -5,6 +5,7 @@ import { Button } from '../components/Button'
 import { Input } from '../components/Input'
 import { cn } from '../lib/utils'
 import { useAuthStore } from '../stores/useAuthStore'
+import { useShortcutStore } from '../stores/useShortcutStore'
 import { supabase } from '../lib/supabase'
 
 type NoteFormat = 'plain' | 'markdown'
@@ -42,6 +43,7 @@ function normalizeTitleForSave(s: string) {
 
 export const NotesTool: React.FC = () => {
   const { user } = useAuthStore()
+  const { getShortcutChecker } = useShortcutStore()
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -124,27 +126,45 @@ export const NotesTool: React.FC = () => {
 
   useEffect(() => {
     loadNotes()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
 
-    const onVisible = (e?: Event) => {
-      if (e?.type === 'focus' || document.visibilityState === 'visible') {
-        console.log('[NotesTool] Tab became visible, scheduling loadNotes', { eventType: e?.type, timestamp: Date.now() })
-        // next tick to avoid running during focus/paint edge-cases
-        requestAnimationFrame(() => loadNotes())
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const checkSave = getShortcutChecker('save')
+      if (checkSave && checkSave(e)) {
+        e.preventDefault()
+        // 如果有活动笔记，立即保存
+        if (activeNote) {
+          // 清除自动保存定时器并立即保存
+          const existingTimer = saveTimersRef.current[activeNote.id]
+          if (existingTimer) {
+            window.clearTimeout(existingTimer)
+            delete saveTimersRef.current[activeNote.id]
+          }
+          
+          // 手动触发保存
+          setSavingIds((m) => ({ ...m, [activeNote.id]: true }))
+          const payload = { updated_at: new Date().toISOString() }
+          supabase.from('notes').update(payload).eq('id', activeNote.id).eq('user_id', user?.id)
+            .then(({ error }) => {
+              if (error) throw error
+            })
+            .catch((e: any) => {
+              setError(e.message || '保存失败')
+            })
+            .finally(() => {
+              setSavingIds((m) => ({ ...m, [activeNote.id]: false }))
+            })
+        }
+        return
       }
     }
 
-    window.addEventListener('focus', onVisible)
-    window.addEventListener('pageshow', onVisible)
-    document.addEventListener('visibilitychange', onVisible)
-
-    return () => {
-      window.removeEventListener('focus', onVisible)
-      window.removeEventListener('pageshow', onVisible)
-      document.removeEventListener('visibilitychange', onVisible)
-    }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id])
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [activeNote, user?.id, getShortcutChecker])
 
 
   const scheduleSave = (id: string, patch: Partial<Pick<Note, 'title' | 'content' | 'format' | 'order_index'>>) => {

@@ -32,6 +32,7 @@ export const StickyNotesWidget: React.FC = () => {
   const [submitting, setSubmitting] = useState(false)
   const [info, setInfo] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isComposing, setIsComposing] = useState(false)
 
   const infoTimerRef = useRef<number | null>(null)
 
@@ -79,7 +80,7 @@ export const StickyNotesWidget: React.FC = () => {
       if (insertError) throw insertError
 
       setText('')
-      setInfo('已提交到“随心记”')
+      setInfo('已提交到"随心记"')
       clearInfoSoon()
     } catch (e: any) {
       setError(e?.message || '提交失败')
@@ -135,14 +136,16 @@ export const StickyNotesWidget: React.FC = () => {
           <textarea
             value={text}
             onChange={(e) => setText(clampText(e.target.value))}
-            placeholder={`回车提交到“随心记”（标题：灵感 + 当前时间）\nShift+Enter 换行`}
+            placeholder={`回车提交到"随心记"（标题：灵感 + 当前时间）\nShift+Enter 换行`}
             className={cn(
               'w-full h-44 resize-none rounded-lg border border-border bg-background/10',
               'px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground',
               'focus:outline-none focus:ring-1 focus:ring-primary'
             )}
+            onCompositionStart={() => setIsComposing(true)}
+            onCompositionEnd={() => setIsComposing(false)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
+              if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
                 e.preventDefault()
                 if (canSubmit) handleSubmit()
               }

@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import { NavLink } from 'react-router-dom'
 
@@ -330,11 +331,18 @@ export const Sidebar: React.FC = () => {
         )}
       </nav>
 
-      {/* TodoList Hover (portal to avoid overflow clipping) */}
-      {todoHoverOpen && todoHoverPos && (
+      {/* TodoList Hover (using React Portal) */}
+      {todoHoverOpen && todoHoverPos && createPortal(
         <div
-          className="fixed w-72 z-[10001] transition-opacity"
-          style={{ left: todoHoverPos.left, top: todoHoverPos.top, transform: 'translateY(-50%)' }}
+          className="fixed w-72 transition-opacity"
+          style={{ 
+            left: todoHoverPos.left, 
+            top: todoHoverPos.top, 
+            transform: 'translateY(-50%)', 
+            zIndex: '2147483647 !important',
+            position: 'fixed',
+            isolation: 'isolate'
+          }}
           onPointerEnter={() => openTodoHover(todoHoverAnchorRef.current)}
           onPointerLeave={scheduleCloseTodoHover}
         >
@@ -368,14 +376,15 @@ export const Sidebar: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Context Menu */}
       {contextMenu && (
         <div
-          className="fixed z-[10000] min-w-[160px] rounded-lg border border-border bg-background/95 backdrop-blur-xl shadow-lg py-1"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
+          className="fixed min-w-[160px] rounded-lg border border-border bg-background/95 backdrop-blur-xl shadow-lg py-1"
+          style={{ left: contextMenu.x, top: contextMenu.y, zIndex: 999998 }}
         >
           <button
             className="w-full px-4 py-2 text-sm text-left hover:bg-muted transition-colors flex items-center gap-2 text-foreground"

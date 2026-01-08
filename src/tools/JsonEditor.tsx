@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useRef } from 'react'
 import Editor from '@monaco-editor/react'
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
 import { cn } from '../lib/utils'
+import { useShortcutStore } from '../stores/useShortcutStore'
 import {
   Braces,
   AlignLeft,
@@ -195,6 +196,9 @@ function remapExpandedKeysForRename(
 }
 
 export const JsonEditor: React.FC = () => {
+  const { getShortcutChecker } = useShortcutStore()
+  const editorRef = useRef<any>(null)
+  
   const [value, setValue] = useState(`{
   "message": "Hello Geek Toolbox",
   "status": "active",
@@ -211,6 +215,8 @@ export const JsonEditor: React.FC = () => {
   const [addKey, setAddKey] = useState('')
   const [addLiteral, setAddLiteral] = useState('""')
   const [panelError, setPanelError] = useState<string | null>(null)
+  
+  const editorRef = useRef<any>(null)
 
   const parsed = useMemo(() => safeParseJson(value), [value])
 
@@ -246,6 +252,14 @@ export const JsonEditor: React.FC = () => {
     }
     setValue(JSON.stringify(res.value, null, 2))
     setError(null)
+    
+    // 格式化后滚动到顶部
+    setTimeout(() => {
+      if (editorRef.current) {
+        editorRef.current.setPosition({ lineNumber: 1, column: 1 })
+        editorRef.current.revealLine(1)
+      }
+    }, 0)
   }
 
   const handleMinify = () => {
@@ -421,6 +435,45 @@ export const JsonEditor: React.FC = () => {
     return tree.filter(isVisible)
   }, [tree, expanded, parsed])
 
+  // 快捷键支持
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const checkSave = getShortcutChecker('save')
+      const checkUndo = getShortcutChecker('undo')
+      const checkRedo = getShortcutChecker('redo')
+
+      if (checkSave && checkSave(e)) {
+        e.preventDefault()
+        // JSON 编辑器主要是手动操作，保存功能可以理解为复制到剪贴板
+        navigator.clipboard.writeText(value).then(() => {
+          console.log('JSON 已复制到剪贴板')
+        })
+        return
+      }
+
+      if (checkUndo && checkUndo(e)) {
+        e.preventDefault()
+        // 触发 Monaco Editor 的撤销
+        if (editorRef.current) {
+          editorRef.current.trigger('keyboard', 'undo', null)
+        }
+        return
+      }
+
+      if (checkRedo && checkRedo(e)) {
+        e.preventDefault()
+        // 触发 Monaco Editor 的重做
+        if (editorRef.current) {
+          editorRef.current.trigger('keyboard', 'redo', null)
+        }
+        return
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [getShortcutChecker, value])
+
   return (
     <div className="flex flex-col h-full space-y-4">
       <div className="flex items-center justify-between">
@@ -469,6 +522,7 @@ export const JsonEditor: React.FC = () => {
             defaultLanguage="json"
             value={value}
             onChange={(v) => setValue(v || '')}
+            onMount={(editor) => { editorRef.current = editor }}
             theme="vs-dark"
             options={{
               minimap: { enabled: false },

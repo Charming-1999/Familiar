@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './stores/useAuthStore'
 import { useToolStore } from './stores/useToolStore'
@@ -16,13 +16,13 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { isSubscribed } = useComponentStore()
 
   return (
-    <div className="h-screen bg-background flex">
+    <div className="h-screen w-screen bg-background flex overflow-hidden">
       <ThemeGate />
-      <div className="shrink-0 h-screen overflow-y-auto">
+      <div className="shrink-0 h-full overflow-y-auto border-r border-border">
         <Sidebar />
       </div>
-      <div className="flex-1 flex flex-col min-h-0">
-        <main className="flex-1 min-h-0 bg-background p-8 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0 relative">
+        <main className="flex-1 min-h-0 bg-background p-8 flex flex-col overflow-y-auto">
           {children}
         </main>
       </div>
@@ -36,9 +36,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, profile, initialized, initialize } = useAuthStore()
   const { bindUser } = useToolStore()
   const { bindUser: bindComponents } = useComponentStore()
+  
+  const initRef = useRef(false)
 
   useEffect(() => {
-    initialize()
+    if (!initRef.current) {
+      initRef.current = true
+      initialize()
+    }
   }, [initialize])
 
   useEffect(() => {
