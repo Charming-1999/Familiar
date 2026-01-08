@@ -215,8 +215,6 @@ export const JsonEditor: React.FC = () => {
   const [addKey, setAddKey] = useState('')
   const [addLiteral, setAddLiteral] = useState('""')
   const [panelError, setPanelError] = useState<string | null>(null)
-  
-  const editorRef = useRef<any>(null)
 
   const parsed = useMemo(() => safeParseJson(value), [value])
 
