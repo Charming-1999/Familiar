@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { NotebookPen, Plus, Save, X, Search, GripVertical, Trash2, FileText, FileCode2 } from 'lucide-react'
+import 'bytemd/dist/index.css'
+import 'github-markdown-css/github-markdown.css'
+import 'katex/dist/katex.min.css'
+import 'highlight.js/styles/github.css'
 
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'

@@ -54,7 +54,7 @@ export const ImageTool: React.FC = () => {
       }
       setImagePreview(base64)
       setBase64Result(base64)
-    } catch (err) {
+    } catch {
       alert('Base64 解析失败')
     }
   }

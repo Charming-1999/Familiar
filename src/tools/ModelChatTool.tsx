@@ -8,6 +8,8 @@ import { cn } from '../lib/utils'
 import { useAuthStore } from '../stores/useAuthStore'
 import { useShortcutStore } from '../stores/useShortcutStore'
 import { supabase } from '../lib/supabase'
+import { requestModelChatStream } from '../lib/runtimeConfig'
+
 
 type ChatRole = 'system' | 'user' | 'assistant'
 
@@ -26,10 +28,8 @@ type Conversation = {
   created_at: string
 }
 
-const API_URL = 'https://grsaiapi.com/v1/chat/completions'
-const API_KEY = 'sk-f7c46d4aec1b4497bbd043979bb348b4'
-
 type ModelId = 'gemini-3-pro' | 'gemini-3-flash'
+
 
 function uid() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -52,24 +52,11 @@ async function streamChatCompletion(args: {
   signal: AbortSignal
   onDelta: StreamIterCb
 }): Promise<StreamResult> {
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: args.model,
-      stream: true,
-      messages: args.messages,
-    }),
+  const res = await requestModelChatStream({
+    model: args.model,
+    messages: args.messages,
     signal: args.signal,
   })
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(text || `请求失败（${res.status}）`)
-  }
 
   if (!res.body) {
     const text = await res.text().catch(() => '')
@@ -85,6 +72,7 @@ async function streamChatCompletion(args: {
   }
 
   const reader = res.body.getReader()
+
   const decoder = new TextDecoder('utf-8')
 
   let buffer = ''

@@ -16,7 +16,7 @@ export const Base64Tool: React.FC = () => {
       } else {
         setOutput(atob(input))
       }
-    } catch (err) {
+    } catch {
       setOutput('Error: Invalid input for Base64 ' + mode)
     }
   }

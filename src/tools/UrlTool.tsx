@@ -16,7 +16,7 @@ export const UrlTool: React.FC = () => {
       } else {
         setOutput(decodeURIComponent(input))
       }
-    } catch (err) {
+    } catch {
       setOutput('错误: 无效的 URL 编码字符串')
     }
   }

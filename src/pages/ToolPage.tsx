@@ -1,70 +1,29 @@
-import React from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { JsonEditor } from '../tools/JsonEditor'
-import { Base64Tool } from '../tools/Base64Tool'
-import { TimestampTool } from '../tools/TimestampTool'
-import { UrlTool } from '../tools/UrlTool'
-import { HashTool } from '../tools/HashTool'
-import { JwtTool } from '../tools/JwtTool'
-import { RegexTool } from '../tools/RegexTool'
-import { DiffTool } from '../tools/DiffTool'
-import { LinuxCommandTool } from '../tools/LinuxCommandTool'
-import { NotesTool } from '../tools/NotesTool'
-import { ModelChatTool } from '../tools/ModelChatTool'
-import { TodoListTool } from '../tools/TodoListTool'
-import { ExcalidrawTool } from '../tools/ExcalidrawTool'
-import { MonacoEditorTool } from '../tools/MonacoEditorTool'
-import { QrCodeTool } from '../tools/QrCodeTool'
-import { PromptVaultTool } from '../tools/PromptVaultTool'
-import { SiteVaultTool } from '../tools/SiteVaultTool'
-import { CronTool } from '../tools/CronTool'
-import { ImageTool } from '../tools/ImageTool'
-import { NanoBananaTool } from '../tools/NanoBananaTool'
+import React, { Suspense } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, Loader2, Star } from 'lucide-react'
+
 import { Button } from '../components/Button'
-
-
-
-
-
-import { ArrowLeft, Star } from 'lucide-react'
-import { useToolStore } from '../stores/useToolStore'
+import { TOOL_REGISTRY_BY_ID } from '../lib/toolRegistry'
 import { cn } from '../lib/utils'
+import { useToolStore } from '../stores/useToolStore'
 
-const TOOL_COMPONENTS: Record<string, React.FC> = {
-  'json': JsonEditor,
-  'base64': Base64Tool,
-  'time': TimestampTool,
-  'url': UrlTool,
-  'hash': HashTool,
-  'jwt': JwtTool,
-  'regex': RegexTool,
-  'diff': DiffTool,
-  'linux': LinuxCommandTool,
-  'notes': NotesTool,
-  'chat': ModelChatTool,
-  'todolist': TodoListTool,
-  'excalidraw': ExcalidrawTool,
-  'monaco': MonacoEditorTool,
-  'qrcode': QrCodeTool,
-  'promptvault': PromptVaultTool,
-  'sitevault': SiteVaultTool,
-  'cron': CronTool,
-  'image': ImageTool,
-  'nanobanana': NanoBananaTool,
-}
-
-
-
-
-
-
+const ToolFallback = ({ name }: { name: string }) => (
+  <div className="flex-1 min-h-0 flex items-center justify-center">
+    <div className="glass-card rounded-2xl border border-border px-8 py-7 text-center space-y-3">
+      <Loader2 className="w-8 h-8 mx-auto text-primary animate-spin" />
+      <div className="text-sm text-foreground">正在加载 {name}</div>
+      <div className="text-xs text-muted-foreground">按需加载已启用，避免整包工具一次性阻塞。</div>
+    </div>
+  </div>
+)
 
 export const ToolPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { toggleFavorite, isFavorite } = useToolStore()
+  const tool = id ? TOOL_REGISTRY_BY_ID[id] : undefined
 
-  if (!id || !TOOL_COMPONENTS[id]) {
+  if (!tool) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
         <h2 className="text-2xl font-bold text-muted-foreground">工具不存在</h2>
@@ -73,38 +32,30 @@ export const ToolPage: React.FC = () => {
     )
   }
 
-  const Component = TOOL_COMPONENTS[id]
-  const favorited = isFavorite(id)
+  const Component = tool.component
+  const favorited = isFavorite(tool.id)
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-6 shrink-0">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => navigate(-1)}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          返回
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "hover:bg-primary/10",
-            favorited ? "text-primary" : "text-muted-foreground"
-          )}
-          onClick={() => toggleFavorite(id)}
-        >
-          <Star className={cn("w-4 h-4 mr-2", favorited && "fill-current")} />
+    <div className="flex flex-col h-full space-y-4">
+      <div className="flex items-start justify-between gap-4 flex-wrap shrink-0">
+        <div className="space-y-2">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="text-muted-foreground hover:text-foreground -ml-3">
+            <ArrowLeft className="w-4 h-4 mr-2" />返回
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold text-foreground italic">{tool.name}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{tool.description}</p>
+          </div>
+        </div>
+        <Button variant="ghost" size="sm" className={cn('hover:bg-primary/10', favorited ? 'text-primary' : 'text-muted-foreground')} onClick={() => toggleFavorite(tool.id)}>
+          <Star className={cn('w-4 h-4 mr-2', favorited && 'fill-current')} />
           {favorited ? '已收藏' : '加入收藏'}
         </Button>
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col">
+      <Suspense fallback={<ToolFallback name={tool.name} />}>
         <Component />
-      </div>
+      </Suspense>
     </div>
   )
 }

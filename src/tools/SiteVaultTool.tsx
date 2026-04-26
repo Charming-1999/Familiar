@@ -403,7 +403,9 @@ export const SiteVaultTool: React.FC = () => {
                             onClick={() => {
                               try {
                                 window.open(it.url, '_blank', 'noreferrer')
-                              } catch {}
+                              } catch {
+                                // Ignore popup blocker / window open errors.
+                              }
                             }}
                             title="打开"
                           >

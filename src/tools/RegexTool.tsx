@@ -37,7 +37,7 @@ export const RegexTool: React.FC = () => {
         }
       }
       return results
-    } catch (err) {
+    } catch {
       return null
     }
   }, [pattern, flags, text])

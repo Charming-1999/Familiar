@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import Editor from '@monaco-editor/react'
 import { FileCode2, Plus, Trash2, Save } from 'lucide-react'
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
@@ -17,6 +16,25 @@ type FileItem = {
   createdAt: string
   updatedAt: string
 }
+
+type MonacoEditorComponent = React.ComponentType<{
+  key?: React.Key
+  theme: string
+  language: string
+  value: string
+  onMount: (
+    editor: { addCommand: (keybinding: number, handler: () => void) => void },
+    monaco: { KeyMod: { CtrlCmd: number }; KeyCode: { KeyS: number } }
+  ) => void
+  onChange: (value: string | undefined) => void
+  options: {
+    minimap: { enabled: boolean }
+    fontSize: number
+    wordWrap: 'on'
+    scrollBeyondLastLine: boolean
+    automaticLayout: boolean
+  }
+}>
 
 function safeParseJson<T>(raw: string | null): T | null {
   if (!raw) return null
@@ -65,6 +83,7 @@ export const MonacoEditorTool: React.FC = () => {
   const { user } = useAuthStore()
   const { theme } = useThemeStore()
 
+  const [EditorComponent, setEditorComponent] = useState<MonacoEditorComponent | null>(null)
   const [files, setFiles] = useState<FileItem[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [nameInput, setNameInput] = useState('')
@@ -122,6 +141,21 @@ export const MonacoEditorTool: React.FC = () => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
+
+  useEffect(() => {
+    let active = true
+    import('@monaco-editor/react')
+      .then((mod) => {
+        if (active) setEditorComponent(() => mod.default as MonacoEditorComponent)
+      })
+      .catch((error) => {
+        console.error('[MonacoEditorTool] load monaco failed:', error)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -338,29 +372,35 @@ export const MonacoEditorTool: React.FC = () => {
               </div>
 
               <div className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden bg-background">
-                <Editor
-                  key={activeFile.id}
-                  theme={themeForEditor}
-                  language={activeFile.language}
-                  value={activeFile.content}
-                  onMount={(editor, monaco) => {
-                    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-                      manualSaveNow()
-                    })
-                  }}
-                  onChange={(v) => {
-                    const next = v ?? ''
-                    latestContentRef.current = next
-                    scheduleSave({ content: next })
-                  }}
-                  options={{
-                    minimap: { enabled: false },
-                    fontSize: 14,
-                    wordWrap: 'on',
-                    scrollBeyondLastLine: false,
-                    automaticLayout: true,
-                  }}
-                />
+                {EditorComponent ? (
+                  <EditorComponent
+                    key={activeFile.id}
+                    theme={themeForEditor}
+                    language={activeFile.language}
+                    value={activeFile.content}
+                    onMount={(editor, monaco) => {
+                      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+                        manualSaveNow()
+                      })
+                    }}
+                    onChange={(v) => {
+                      const next = v ?? ''
+                      latestContentRef.current = next
+                      scheduleSave({ content: next })
+                    }}
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: 14,
+                      wordWrap: 'on',
+                      scrollBeyondLastLine: false,
+                      automaticLayout: true,
+                    }}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+                    正在加载编辑器...
+                  </div>
+                )}
               </div>
             </>
           )}

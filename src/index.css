@@ -24,6 +24,21 @@
     --destructive-foreground: 0 0% 98%;
 
     --border: 0 0% 20%;
+    --theme-body-image:
+      radial-gradient(circle at 12% 18%, rgba(34, 197, 94, 0.12), transparent 34%),
+      radial-gradient(circle at 86% 14%, rgba(14, 165, 233, 0.10), transparent 38%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 28%);
+    --theme-panel-bg: hsl(var(--background) / 0.72);
+    --theme-card-bg: hsl(var(--secondary) / 0.62);
+    --theme-card-border: hsl(var(--border) / 0.85);
+    --theme-card-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
+    --theme-card-blur: 18px;
+    --theme-field-bg: hsl(var(--background) / 0.68);
+    --theme-field-border: hsl(var(--border) / 0.9);
+    --theme-field-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    --theme-field-focus: 0 0 0 4px hsl(var(--primary) / 0.16);
+    --theme-soft-bg: hsl(var(--muted) / 0.42);
+    --theme-soft-border: hsl(var(--border) / 0.6);
   }
 
   :root[data-theme='light'] {
@@ -46,37 +61,70 @@
     --destructive-foreground: 0 0% 98%;
 
     --border: 0 0% 85%;
+    --theme-body-image:
+      radial-gradient(circle at 10% 14%, rgba(59, 130, 246, 0.10), transparent 34%),
+      radial-gradient(circle at 86% 18%, rgba(251, 146, 60, 0.10), transparent 38%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(248, 250, 252, 0.88));
+    --theme-panel-bg: hsl(0 0% 100% / 0.78);
+    --theme-card-bg: hsl(0 0% 100% / 0.82);
+    --theme-card-border: hsl(var(--border) / 0.95);
+    --theme-card-shadow: 0 22px 50px rgba(15, 23, 42, 0.08);
+    --theme-card-blur: 16px;
+    --theme-field-bg: hsl(0 0% 100% / 0.9);
+    --theme-field-border: hsl(var(--border) / 1);
+    --theme-field-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 10px 25px rgba(15, 23, 42, 0.04);
+    --theme-field-focus: 0 0 0 4px rgba(59, 130, 246, 0.12);
+    --theme-soft-bg: hsl(var(--secondary) / 0.82);
+    --theme-soft-border: hsl(var(--border) / 0.9);
   }
 
   :root[data-theme='pixel'] {
-    /* clean arcade / handheld console vibe */
-    --background: 210 20% 96%;
-    --foreground: 222 47% 11%;
+    /* polished handheld-console vibe */
+    --background: 40 70% 95%;
+    --foreground: 218 35% 13%;
 
-    --primary: 262 80% 50%;
-    --primary-foreground: 210 20% 98%;
+    --primary: 222 86% 56%;
+    --primary-foreground: 40 100% 98%;
 
-    --secondary: 199 89% 48%;
-    --secondary-foreground: 210 20% 98%;
+    --secondary: 171 58% 42%;
+    --secondary-foreground: 40 100% 98%;
 
-    --muted: 210 20% 90%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 43 54% 89%;
+    --muted-foreground: 218 18% 35%;
 
-    --accent: 326 100% 60%;
-    --accent-foreground: 210 20% 98%;
+    --accent: 15 93% 61%;
+    --accent-foreground: 40 100% 98%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 20% 98%;
+    --destructive: 0 82% 58%;
+    --destructive-foreground: 40 100% 98%;
 
-    --border: 222 47% 11%;
+    --border: 219 38% 18%;
+    --theme-body-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 36%),
+      radial-gradient(circle at 18% 20%, rgba(59, 130, 246, 0.16), transparent 32%),
+      radial-gradient(circle at 82% 14%, rgba(251, 146, 60, 0.18), transparent 35%),
+      linear-gradient(90deg, rgba(15, 23, 42, 0.045) 1px, transparent 1px),
+      linear-gradient(0deg, rgba(15, 23, 42, 0.045) 1px, transparent 1px);
+    --theme-panel-bg: hsl(42 90% 95% / 0.9);
+    --theme-card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 238, 215, 0.92));
+    --theme-card-border: hsl(var(--border) / 0.98);
+    --theme-card-shadow: 0 10px 0 rgba(34, 44, 73, 0.18), 0 18px 38px rgba(15, 23, 42, 0.10);
+    --theme-card-blur: 0px;
+    --theme-field-bg: rgba(255, 251, 236, 0.96);
+    --theme-field-border: hsl(var(--border) / 0.92);
+    --theme-field-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.7), 0 3px 0 rgba(34, 44, 73, 0.12);
+    --theme-field-focus: 0 0 0 4px rgba(59, 130, 246, 0.18);
+    --theme-soft-bg: rgba(255, 255, 255, 0.68);
+    --theme-soft-border: hsl(var(--border) / 0.6);
   }
 
   :root[data-theme='pixel'] body {
     font-family: 'VT323', monospace;
     /* 原来 1.5rem 在 Windows 下会让原生 select 下拉列表显示不全 */
-    font-size: 1.125rem;
-    line-height: 1.25;
-    letter-spacing: 0.03em;
+    font-size: 1.15rem;
+    line-height: 1.35;
+    letter-spacing: 0.02em;
+    background-size: auto, auto, auto, 22px 22px, 22px 22px;
   }
 
   :root[data-theme='pixel'] h1,
@@ -86,10 +134,11 @@
   :root[data-theme='pixel'] button,
   :root[data-theme='pixel'] .font-pixel {
     font-family: 'Press Start 2P', cursive;
-    font-size: 0.9rem;
-    line-height: 1.6;
+    font-size: clamp(0.72rem, 0.67rem + 0.16vw, 0.86rem);
+    line-height: 1.7;
     text-transform: uppercase;
     font-style: normal !important;
+    letter-spacing: 0.08em;
   }
 
   :root[data-theme='pixel'] aside,
@@ -97,51 +146,50 @@
   :root[data-theme='pixel'] .backdrop-blur-xl,
   :root[data-theme='pixel'] .backdrop-blur-md {
     backdrop-filter: none !important;
-    background: hsl(var(--background)) !important;
-    border: 3px solid hsl(var(--border)) !important;
+    background: var(--theme-card-bg) !important;
+    border: 2px solid hsl(var(--border) / 0.95) !important;
+    box-shadow: var(--theme-card-shadow) !important;
+    border-radius: 14px !important;
   }
 
   :root[data-theme='pixel'] button {
-    border: 3px solid hsl(var(--border));
-    background: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-    border-radius: 0 !important;
-    box-shadow: 6px 6px 0 0 hsl(var(--border));
-    transition: transform 0.1s, box-shadow 0.1s;
-    padding: 0.5rem 1rem;
-    text-transform: uppercase;
+    border: 2px solid hsl(var(--border) / 0.95);
+    border-radius: 12px !important;
+    box-shadow: 0 5px 0 hsl(var(--border) / 0.92), 0 12px 24px rgba(15, 23, 42, 0.12);
+    transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+    padding: 0.55rem 1rem;
   }
 
   :root[data-theme='pixel'] button:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 8px 8px 0 0 hsl(var(--border));
+    transform: translateY(-2px);
+    box-shadow: 0 7px 0 hsl(var(--border) / 0.92), 0 16px 28px rgba(15, 23, 42, 0.14);
   }
 
   :root[data-theme='pixel'] button:active {
-    transform: translate(4px, 4px);
-    box-shadow: 0 0 0 0 hsl(var(--border));
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 hsl(var(--border) / 0.92), 0 6px 12px rgba(15, 23, 42, 0.12);
   }
 
   :root[data-theme='pixel'] .rounded-xl,
   :root[data-theme='pixel'] .rounded-2xl,
   :root[data-theme='pixel'] .rounded-lg,
   :root[data-theme='pixel'] .rounded-md {
-    border-radius: 0 !important;
-    border: 3px solid hsl(var(--border)) !important;
+    border-radius: 14px !important;
   }
 
   :root[data-theme='pixel'] input,
   :root[data-theme='pixel'] select,
   :root[data-theme='pixel'] textarea {
-    border-radius: 0 !important;
-    border: 3px solid hsl(var(--border)) !important;
-    background: #ffffff !important;
+    border-radius: 12px !important;
+    border: 2px solid hsl(var(--border) / 0.92) !important;
+    background: var(--theme-field-bg) !important;
     color: hsl(var(--foreground)) !important;
     font-family: 'VT323', monospace;
     /* 原来 1.5rem 会让表单控件和下拉选项过大 */
-    font-size: 1rem;
+    font-size: 1.05rem;
     line-height: 1.4;
-    padding: 0.45rem 0.6rem;
+    padding: 0.5rem 0.7rem;
+    box-shadow: var(--theme-field-shadow) !important;
   }
 
   /* 兜底：确保 option 不会出现白底白字（不同浏览器支持度不同，但能覆盖多数场景） */
@@ -151,10 +199,10 @@
   }
 
   :root[data-theme='pixel'] select option {
-    background-color: #ffffff;
-    color: #111827;
+    background-color: #fff8e8;
+    color: #1f2937;
     font-family: 'VT323', monospace;
-    font-size: 1rem;
+    font-size: 1.05rem;
     line-height: 1.4;
   }
 
@@ -182,41 +230,40 @@
   }
 
   :root[data-theme='pixel'] .notes-bytemd .bytemd {
-    background: #ffffff !important;
-    border: 3px solid hsl(var(--border)) !important;
-    border-radius: 0 !important;
+    background: #fff8ee !important;
+    border: 2px solid hsl(var(--border) / 0.95) !important;
+    border-radius: 14px !important;
+    box-shadow: var(--theme-card-shadow) !important;
   }
 
   :root[data-theme='pixel'] .notes-bytemd .bytemd-toolbar,
   :root[data-theme='pixel'] .notes-bytemd .bytemd-status {
-    background: #ffffff !important;
+    background: #fff3d9 !important;
     border-color: hsl(var(--border)) !important;
   }
 
   :root[data-theme='pixel'] .bg-muted\/20,
   :root[data-theme='pixel'] .bg-muted\/30,
   :root[data-theme='pixel'] .bg-background\/30 {
-    background: #ffffff;
-    box-shadow: 6px 6px 0 0 rgba(0, 0, 0, 0.1);
+    background: var(--theme-soft-bg) !important;
+    border-color: var(--theme-soft-border) !important;
+    box-shadow: 0 4px 0 rgba(34, 44, 73, 0.08);
   }
 
   :root[data-theme='pixel'] .text-4xl {
-    font-size: 2.25rem;
-    letter-spacing: 0.05em;
+    font-size: clamp(1.6rem, 1.25rem + 0.8vw, 2.3rem);
+    letter-spacing: 0.08em;
+    line-height: 1.4;
   }
 
   :root[data-theme='pixel'] .pixel-card {
-    border: 4px solid hsl(var(--border));
-    box-shadow: 8px 8px 0 0 rgba(0,0,0,0.15);
+    border: 2px solid hsl(var(--border) / 0.95);
+    box-shadow: var(--theme-card-shadow);
   }
 
   :root[data-theme='pixel'] body {
     background-color: hsl(var(--background));
-    background-image: 
-      linear-gradient(45deg, rgba(0,0,0,0.02) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.02) 75%, rgba(0,0,0,0.02)), 
-      linear-gradient(45deg, rgba(0,0,0,0.02) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.02) 75%, rgba(0,0,0,0.02));
-    background-size: 40px 40px;
-    background-position: 0 0, 20px 20px;
+    background-position: center top, center top, center top, 0 0, 0 0;
   }
 
   :root[data-theme='transparent'] {
@@ -240,6 +287,22 @@
     --destructive-foreground: 0 0% 98%;
 
     --border: 220 15% 28%;
+    --theme-body-image:
+      radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.22), transparent 45%),
+      radial-gradient(circle at 85% 35%, rgba(168, 85, 247, 0.18), transparent 50%),
+      radial-gradient(circle at 30% 85%, rgba(34, 211, 238, 0.16), transparent 55%),
+      linear-gradient(180deg, rgba(0, 0, 0, 0.35), transparent 45%);
+    --theme-panel-bg: hsl(var(--background) / 0.42);
+    --theme-card-bg: hsl(var(--background) / 0.35);
+    --theme-card-border: hsl(var(--border) / 0.55);
+    --theme-card-shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
+    --theme-card-blur: 18px;
+    --theme-field-bg: hsl(var(--background) / 0.28);
+    --theme-field-border: hsl(var(--border) / 0.62);
+    --theme-field-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    --theme-field-focus: 0 0 0 4px hsl(var(--primary) / 0.18);
+    --theme-soft-bg: hsl(var(--secondary) / 0.34);
+    --theme-soft-border: hsl(var(--border) / 0.48);
   }
 
   :root[data-theme='transparent'] .min-h-screen.bg-background,
@@ -248,15 +311,15 @@
   }
 
   :root[data-theme='transparent'] .glass-card {
-    background: hsl(var(--background) / 0.35);
-    border-color: hsl(var(--border) / 0.55);
+    background: var(--theme-card-bg);
+    border-color: var(--theme-card-border);
     backdrop-filter: blur(18px);
   }
 
   :root[data-theme='transparent'] input,
   :root[data-theme='transparent'] select,
   :root[data-theme='transparent'] textarea {
-    background: hsl(var(--background) / 0.25) !important;
+    background: var(--theme-field-bg) !important;
   }
 
   :root[data-theme='neon'] {
@@ -280,52 +343,97 @@
     --destructive-foreground: 0 0% 98%;
 
     --border: 240 18% 22%;
+    --theme-body-image:
+      radial-gradient(circle at 15% 25%, rgba(0, 255, 199, 0.14), transparent 40%),
+      radial-gradient(circle at 80% 30%, rgba(255, 0, 214, 0.12), transparent 45%),
+      radial-gradient(circle at 30% 82%, rgba(56, 189, 248, 0.10), transparent 46%),
+      linear-gradient(180deg, rgba(0, 0, 0, 0.15), transparent 35%);
+    --theme-panel-bg: hsl(240 28% 8% / 0.72);
+    --theme-card-bg: hsl(240 24% 10% / 0.78);
+    --theme-card-border: hsl(var(--primary) / 0.22);
+    --theme-card-shadow: 0 0 0 1px hsl(var(--primary) / 0.12), 0 24px 60px rgba(0, 0, 0, 0.38), 0 0 26px rgba(0, 255, 199, 0.06);
+    --theme-card-blur: 14px;
+    --theme-field-bg: hsl(240 24% 9% / 0.84);
+    --theme-field-border: hsl(var(--primary) / 0.26);
+    --theme-field-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02), 0 0 0 1px rgba(255, 255, 255, 0.01);
+    --theme-field-focus: 0 0 0 4px rgba(0, 255, 199, 0.15);
+    --theme-soft-bg: hsl(240 20% 12% / 0.74);
+    --theme-soft-border: hsl(var(--primary) / 0.18);
   }
 
   :root[data-theme='minimal'] {
-    /* minimal grayscale */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 8%;
+    /* editorial grayscale */
+    --background: 36 20% 97%;
+    --foreground: 24 10% 11%;
 
-    --primary: 0 0% 14%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 24 8% 16%;
+    --primary-foreground: 36 20% 97%;
 
-    --secondary: 0 0% 94%;
-    --secondary-foreground: 0 0% 12%;
+    --secondary: 36 14% 93%;
+    --secondary-foreground: 24 10% 11%;
 
-    --muted: 0 0% 92%;
-    --muted-foreground: 0 0% 40%;
+    --muted: 30 12% 91%;
+    --muted-foreground: 24 7% 38%;
 
-    --accent: 0 0% 18%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 24 10% 20%;
+    --accent-foreground: 36 20% 97%;
 
     --destructive: 0 84% 55%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 85%;
+    --border: 24 10% 82%;
+    --theme-body-image:
+      radial-gradient(circle at 16% 12%, rgba(15, 23, 42, 0.04), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(244, 241, 236, 0.92));
+    --theme-panel-bg: hsl(36 20% 98% / 0.84);
+    --theme-card-bg: hsl(36 20% 99% / 0.92);
+    --theme-card-border: hsl(var(--border) / 1);
+    --theme-card-shadow: 0 16px 30px rgba(36, 32, 28, 0.06);
+    --theme-card-blur: 0px;
+    --theme-field-bg: hsl(36 20% 99% / 1);
+    --theme-field-border: hsl(var(--border) / 1);
+    --theme-field-shadow: none;
+    --theme-field-focus: 0 0 0 4px rgba(24, 24, 27, 0.08);
+    --theme-soft-bg: hsl(var(--secondary) / 0.88);
+    --theme-soft-border: hsl(var(--border) / 0.92);
   }
 
   :root[data-theme='green'] {
     /* eye-care green */
-    --background: 120 28% 92%;
-    --foreground: 150 24% 14%;
+    --background: 108 26% 93%;
+    --foreground: 148 24% 15%;
 
-    --primary: 150 45% 26%;
-    --primary-foreground: 120 28% 96%;
+    --primary: 152 42% 28%;
+    --primary-foreground: 108 26% 97%;
 
-    --secondary: 120 20% 86%;
-    --secondary-foreground: 150 24% 14%;
+    --secondary: 104 18% 87%;
+    --secondary-foreground: 148 24% 15%;
 
-    --muted: 120 18% 88%;
-    --muted-foreground: 150 16% 28%;
+    --muted: 102 18% 89%;
+    --muted-foreground: 146 15% 29%;
 
-    --accent: 190 90% 40%;
-    --accent-foreground: 120 28% 96%;
+    --accent: 187 72% 38%;
+    --accent-foreground: 108 26% 97%;
 
     --destructive: 0 84% 55%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 150 18% 35%;
+    --border: 147 17% 37%;
+    --theme-body-image:
+      radial-gradient(circle at 14% 18%, rgba(16, 185, 129, 0.10), transparent 34%),
+      radial-gradient(circle at 86% 12%, rgba(6, 182, 212, 0.08), transparent 38%),
+      linear-gradient(180deg, rgba(240, 253, 244, 0.68), rgba(224, 242, 231, 0.92));
+    --theme-panel-bg: hsl(108 24% 96% / 0.76);
+    --theme-card-bg: hsl(108 24% 96% / 0.84);
+    --theme-card-border: hsl(var(--border) / 0.82);
+    --theme-card-shadow: 0 18px 34px rgba(21, 73, 48, 0.08);
+    --theme-card-blur: 10px;
+    --theme-field-bg: hsl(108 24% 98% / 0.94);
+    --theme-field-border: hsl(var(--border) / 0.8);
+    --theme-field-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    --theme-field-focus: 0 0 0 4px rgba(16, 185, 129, 0.12);
+    --theme-soft-bg: hsl(104 18% 89% / 0.82);
+    --theme-soft-border: hsl(var(--border) / 0.7);
   }
 
   :root[data-theme='deepsea'] {
@@ -349,6 +457,22 @@
     --destructive-foreground: 0 0% 98%;
 
     --border: 222 18% 24%;
+    --theme-body-image:
+      radial-gradient(circle at 12% 20%, rgba(59, 130, 246, 0.12), transparent 42%),
+      radial-gradient(circle at 75% 30%, rgba(34, 211, 238, 0.12), transparent 46%),
+      radial-gradient(circle at 40% 90%, rgba(16, 185, 129, 0.10), transparent 52%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 25%);
+    --theme-panel-bg: hsl(220 42% 10% / 0.72);
+    --theme-card-bg: hsl(221 34% 12% / 0.76);
+    --theme-card-border: hsl(var(--border) / 0.82);
+    --theme-card-shadow: 0 24px 58px rgba(2, 12, 27, 0.34);
+    --theme-card-blur: 14px;
+    --theme-field-bg: hsl(221 34% 11% / 0.86);
+    --theme-field-border: hsl(var(--border) / 0.84);
+    --theme-field-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    --theme-field-focus: 0 0 0 4px rgba(56, 189, 248, 0.16);
+    --theme-soft-bg: hsl(222 22% 18% / 0.76);
+    --theme-soft-border: hsl(var(--border) / 0.7);
   }
 
   :root[data-theme='ios'] {
@@ -372,6 +496,21 @@
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 14% 86%;
+    --theme-body-image:
+      radial-gradient(circle at 10% 15%, rgba(0, 122, 255, 0.10), transparent 40%),
+      radial-gradient(circle at 85% 20%, rgba(255, 45, 85, 0.08), transparent 45%),
+      radial-gradient(circle at 30% 90%, rgba(52, 199, 89, 0.08), transparent 55%);
+    --theme-panel-bg: hsl(210 40% 98% / 0.74);
+    --theme-card-bg: hsl(210 40% 98% / 0.78);
+    --theme-card-border: hsl(var(--border) / 0.9);
+    --theme-card-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+    --theme-card-blur: 20px;
+    --theme-field-bg: hsl(var(--background) / 0.96);
+    --theme-field-border: hsl(var(--border) / 1);
+    --theme-field-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+    --theme-field-focus: 0 0 0 4px rgba(0, 122, 255, 0.15);
+    --theme-soft-bg: hsl(var(--secondary) / 0.64);
+    --theme-soft-border: hsl(var(--border) / 0.84);
   }
 
   :root[data-theme='ios'] body {
@@ -610,30 +749,64 @@
   body {
     @apply bg-background text-foreground font-sans antialiased selection:bg-primary selection:text-primary-foreground;
     text-rendering: optimizeLegibility;
-  }
-
-  :root[data-theme='transparent'] body {
+    min-height: 100vh;
     background-color: hsl(var(--background));
-    background-image:
-      radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.20), transparent 45%),
-      radial-gradient(circle at 85% 35%, rgba(168, 85, 247, 0.18), transparent 50%),
-      radial-gradient(circle at 30% 85%, rgba(34, 211, 238, 0.16), transparent 55%),
-      linear-gradient(180deg, rgba(0,0,0,0.35), transparent 45%);
+    background-image: var(--theme-body-image);
     background-attachment: fixed;
   }
 
-  :root[data-theme='neon'] body {
-    background-image:
-      radial-gradient(circle at 15% 25%, rgba(0, 255, 199, 0.12), transparent 40%),
-      radial-gradient(circle at 80% 30%, rgba(255, 0, 214, 0.10), transparent 45%),
-      linear-gradient(180deg, rgba(0, 0, 0, 0.15), transparent 35%);
+  :root aside {
+    background: var(--theme-panel-bg) !important;
+    backdrop-filter: blur(calc(var(--theme-card-blur) + 2px)) saturate(145%);
+    -webkit-backdrop-filter: blur(calc(var(--theme-card-blur) + 2px)) saturate(145%);
   }
 
-  :root[data-theme='deepsea'] body {
-    background-image:
-      radial-gradient(circle at 12% 20%, rgba(59, 130, 246, 0.10), transparent 42%),
-      radial-gradient(circle at 75% 30%, rgba(34, 211, 238, 0.10), transparent 46%),
-      radial-gradient(circle at 40% 90%, rgba(16, 185, 129, 0.12), transparent 52%);
+  :root .glass-card {
+    background: var(--theme-card-bg) !important;
+    border-color: var(--theme-card-border) !important;
+    box-shadow: var(--theme-card-shadow);
+    backdrop-filter: blur(var(--theme-card-blur)) saturate(150%);
+    -webkit-backdrop-filter: blur(var(--theme-card-blur)) saturate(150%);
+  }
+
+  :root .bg-background\/95,
+  :root .bg-background\/90,
+  :root .bg-background\/85,
+  :root .bg-background\/80,
+  :root .bg-background\/70,
+  :root .bg-background\/50 {
+    background-color: var(--theme-panel-bg) !important;
+  }
+
+  :root .bg-muted\/10,
+  :root .bg-muted\/20,
+  :root .bg-muted\/30 {
+    background-color: var(--theme-soft-bg) !important;
+  }
+
+  :root input,
+  :root select,
+  :root textarea {
+    background: var(--theme-field-bg);
+    border-color: var(--theme-field-border);
+    box-shadow: var(--theme-field-shadow);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  }
+
+  :root input:focus,
+  :root select:focus,
+  :root textarea:focus {
+    outline: none;
+    border-color: hsl(var(--primary) / 0.55);
+    box-shadow: var(--theme-field-focus);
+  }
+
+  :root .monaco-editor textarea,
+  :root .monaco-editor input,
+  :root .CodeMirror textarea {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
   }
 }
 

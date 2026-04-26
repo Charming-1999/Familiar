@@ -278,7 +278,7 @@ export const NanoBananaTool: React.FC = () => {
     }
   }
 
-  const useAsReference = (url: string) => {
+  const addReferenceUrl = (url: string) => {
     setUrlsText((prev) => {
       const urls = parseUrls(prev)
       if (urls.includes(url)) return prev
@@ -862,7 +862,7 @@ export const NanoBananaTool: React.FC = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => useAsReference(r.url)}
+                            onClick={() => addReferenceUrl(r.url)}
                             className="h-8 text-xs"
                           >
                             <RotateCcw className="w-3.5 h-3.5 mr-1.5" />

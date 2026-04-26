@@ -3,37 +3,22 @@ import { createPortal } from 'react-dom'
 
 import { NavLink } from 'react-router-dom'
 
+import { TOOL_REGISTRY_BY_ID } from '../lib/toolRegistry'
 import { cn } from '../lib/utils'
-import { 
-  LayoutDashboard, 
-  Store, 
 
-  LogOut, 
-  ChevronRight,
-  Code2,
-  Clock,
-  Link2,
-  ShieldCheck,
-  Binary,
-  Fingerprint,
-  Search,
-  FileCode2,
-  Terminal,
-  NotebookPen,
-  Bot,
-  ListTodo,
-  PanelsLeftRight,
-  QrCode,
-  BookOpen,
-  Globe,
+import {
   Check,
+  ChevronRight,
+  LayoutDashboard,
+  LogOut,
   Palette,
-  FileText,
-  Image as ImageIcon,
-  Sparkles,
+  Pin,
+  Settings2,
   Star,
-  Pin
+  Store,
 } from 'lucide-react'
+
+
 
 
 
@@ -52,56 +37,13 @@ const iconMap: Record<string, any> = {
   'market': Store,
   'components': Store,
   'pet_market': Store,
-  'json': Code2,
-  'base64': Binary,
-  'time': Clock,
-  'url': Link2,
-  'hash': ShieldCheck,
-  'jwt': Fingerprint,
-  'regex': Search,
-  'diff': FileCode2,
-  'monaco': FileCode2,
-  'linux': Terminal,
-  'notes': NotebookPen,
-  'chat': Bot,
-  'qrcode': QrCode,
-  'promptvault': BookOpen,
-  'sitevault': Globe,
-  'todolist': ListTodo,
-  'excalidraw': PanelsLeftRight,
-  'cron': Clock,
-  'markdown': FileText,
-  'image': ImageIcon,
-  'nanobanana': Sparkles,
+  'admin_config': Settings2,
 }
 
-type ToolMeta = { id: string; name: string; icon: string }
-
-const TOOL_META: ToolMeta[] = [
-  { id: 'json', name: 'JSON 编辑器', icon: 'json' },
-  { id: 'base64', name: 'Base64 转换', icon: 'base64' },
-  { id: 'time', name: '时间戳转换', icon: 'time' },
-  { id: 'url', name: 'URL 编解码', icon: 'url' },
-  { id: 'hash', name: '哈希计算', icon: 'hash' },
-  { id: 'jwt', name: 'JWT 解码', icon: 'jwt' },
-  { id: 'regex', name: '正则测试', icon: 'regex' },
-  { id: 'diff', name: '文本对比', icon: 'diff' },
-  { id: 'linux', name: 'Linux 指令检索', icon: 'linux' },
-  { id: 'notes', name: '随心记', icon: 'notes' },
-  { id: 'monaco', name: '代码编辑器（Monaco）', icon: 'monaco' },
-  { id: 'excalidraw', name: 'Excalidraw 白板', icon: 'excalidraw' },
-  { id: 'chat', name: '模型对话', icon: 'chat' },
-  { id: 'qrcode', name: '二维码生成', icon: 'qrcode' },
-  { id: 'promptvault', name: 'Prompt 市场', icon: 'promptvault' },
-  { id: 'sitevault', name: '精选网站', icon: 'sitevault' },
-  { id: 'todolist', name: 'TodoList', icon: 'todolist' },
-  { id: 'cron', name: 'Cron 表达式', icon: 'cron' },
-  { id: 'nanobanana', name: 'NanoBanana 生图', icon: 'nanobanana' },
-  { id: 'image', name: '图片工具集', icon: 'image' },
-]
 
 export const Sidebar: React.FC = () => {
-  const { signOut, user } = useAuthStore()
+  const { signOut, user, profile } = useAuthStore()
+
   const { favorites, moveFavorite, toggleFavorite, pinToTop } = useToolStore()
   const { todos, toggleTodo } = useTodoStore()
   const { theme, setTheme } = useThemeStore()
@@ -191,18 +133,12 @@ export const Sidebar: React.FC = () => {
     { name: '工作台', icon: 'dashboard', path: '/' },
     { name: '工具市场', icon: 'market', path: '/market' },
     { name: '组件市场', icon: 'components', path: '/components' },
+    ...(profile?.is_super_admin ? [{ name: '配置中心', icon: 'admin_config', path: '/admin/config' }] : []),
     { name: '宠物市场', icon: 'pet_market', path: '/pets', disabled: true, tip: '开发中，敬请期待' },
   ]
 
-  const favoriteTools = useMemo(() => {
-    const byId = new Map(TOOL_META.map((t) => [t.id, t] as const))
-    const out: ToolMeta[] = []
-    for (const id of favorites) {
-      const t = byId.get(id)
-      if (t) out.push(t)
-    }
-    return out
-  }, [favorites])
+  const favoriteTools = useMemo(() => favorites.map((id) => TOOL_REGISTRY_BY_ID[id]).filter(Boolean), [favorites])
+
 
 
 
@@ -268,8 +204,9 @@ export const Sidebar: React.FC = () => {
               我的收藏
             </p>
             {favoriteTools.map((tool) => {
-              const Icon = iconMap[tool.icon]
+              const Icon = tool.icon
               const isTodoList = tool.id === 'todolist'
+
 
               return (
                 <div
@@ -410,7 +347,8 @@ export const Sidebar: React.FC = () => {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium truncate text-foreground">{user?.email}</p>
-            <p className="text-[10px] text-primary/70">已激活</p>
+            <p className="text-[10px] text-primary/70">{profile?.is_super_admin ? '超级管理员' : '已激活'}</p>
+
           </div>
         </div>
 

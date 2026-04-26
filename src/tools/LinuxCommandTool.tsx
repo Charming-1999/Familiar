@@ -97,7 +97,7 @@ const BUILTIN: BuiltinCommandItem[] = [
     examples: [
       "sed -n '1,120p' file.txt",
       "sed -i 's/127.0.0.1/0.0.0.0/g' *.conf",
-      "sed 's/[[:space:]]\+$//' file.txt",
+      "sed 's/[[:space:]]\\+$//' file.txt",
     ],
     related: ['awk', 'perl'],
   },
@@ -130,7 +130,7 @@ const BUILTIN: BuiltinCommandItem[] = [
     tags: ['curl', 'http', '接口'],
     examples: [
       'curl -i https://example.com',
-      'curl -X POST -H "Content-Type: application/json" -d "{\"a\":1}" http://localhost:3000/api',
+      `curl -X POST -H "Content-Type: application/json" -d '{"a":1}' http://localhost:3000/api`,
       'curl -L -o out.zip https://example.com/file.zip',
     ],
     related: ['wget', 'netstat', 'ss'],

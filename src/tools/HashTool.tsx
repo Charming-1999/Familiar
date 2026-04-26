@@ -27,7 +27,7 @@ export const HashTool: React.FC = () => {
         case 'sha3': return CryptoJS.SHA3(input).toString()
         default: return ''
       }
-    } catch (err) {
+    } catch {
       return '计算错误'
     }
   }

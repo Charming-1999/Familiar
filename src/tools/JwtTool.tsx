@@ -24,7 +24,7 @@ export const JwtTool: React.FC = () => {
       setPayload(decodedPayload)
       setHeader(decodedHeader)
       setError(null)
-    } catch (err) {
+    } catch {
       setError('无效的 JWT 格式')
       setHeader(null)
       setPayload(null)

@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Excalidraw } from '@excalidraw/excalidraw'
-import '@excalidraw/excalidraw/index.css'
+import { createPortal } from 'react-dom'
 import { CloudUpload, Loader2, Maximize2, Minimize2, PanelsLeftRight, Plus, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/useAuthStore'
@@ -9,15 +8,15 @@ import { Input } from '../components/Input'
 import { cn } from '../lib/utils'
 
 type SceneData = {
-  elements: readonly any[]
-  appState: any
+  elements: readonly unknown[]
+  appState: Record<string, unknown>
 }
 
 type ExcalidrawDoc = {
   id: string
   user_id: string
   title: string
-  data: any
+  data: unknown
   created_at: string
   updated_at: string
 }
@@ -35,6 +34,16 @@ type Draft = {
   scene: SceneData
   updatedAt: string
 }
+
+type ExcalidrawComponent = React.ComponentType<{
+  key?: React.Key
+  initialData: {
+    elements: readonly unknown[]
+    appState: unknown
+    files: Record<string, never>
+  }
+  onChange: (elements: readonly unknown[], appState: unknown) => void
+}>
 
 function clampTitleInput(s: string) {
   return s.slice(0, 80)
@@ -79,23 +88,25 @@ function makeLocalId() {
   return `local:${id}`
 }
 
-function sceneFromAny(data: any): SceneData {
+function sceneFromAny(data: unknown): SceneData {
+  const source = typeof data === 'object' && data ? (data as { elements?: unknown; appState?: unknown }) : {}
   return {
-    elements: Array.isArray(data?.elements) ? (data.elements as readonly any[]) : [],
-    appState: typeof data?.appState === 'object' && data?.appState ? data.appState : {},
+    elements: Array.isArray(source.elements) ? source.elements : [],
+    appState: typeof source.appState === 'object' && source.appState ? (source.appState as Record<string, unknown>) : {},
   }
 }
 
-function stripNonSerializableAppState(appState: any) {
-  const safe = { ...(appState || {}) }
-  // @ts-ignore
-  delete safe.collaborators
+function stripNonSerializableAppState(appState: unknown) {
+  const safe: Record<string, unknown> =
+    typeof appState === 'object' && appState ? { ...(appState as Record<string, unknown>) } : {}
+  delete safe['collaborators']
   return safe
 }
 
 export const ExcalidrawTool: React.FC = () => {
   const { user } = useAuthStore()
 
+  const [ExcalidrawComponent, setExcalidrawComponent] = useState<ExcalidrawComponent | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -113,10 +124,10 @@ export const ExcalidrawTool: React.FC = () => {
 
   const [cloudSaving, setCloudSaving] = useState(false)
 
-  const canvasHostRef = useRef<HTMLDivElement | null>(null)
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isImmersive, setIsImmersive] = useState(false)
 
   const latestSceneRef = useRef<SceneData | null>(null)
+
 
   const orderedLocalDocs = useMemo(() => {
     return [...localDocs].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
@@ -235,6 +246,27 @@ export const ExcalidrawTool: React.FC = () => {
   }
 
   useEffect(() => {
+    let active = true
+    Promise.all([
+      import('@excalidraw/excalidraw'),
+      import('@excalidraw/excalidraw/index.css'),
+    ])
+      .then(([mod]) => {
+        if (active) setExcalidrawComponent(() => mod.Excalidraw as ExcalidrawComponent)
+      })
+      .catch((loadError) => {
+        console.error('[ExcalidrawTool] load excalidraw failed:', loadError)
+        if (active) {
+          setError('白板编辑器加载失败')
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
     loadAll()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
@@ -275,11 +307,15 @@ export const ExcalidrawTool: React.FC = () => {
   }, [activeId, cloudDocs, localDocs, user])
 
   useEffect(() => {
-    const onFs = () => setIsFullscreen(!!document.fullscreenElement)
-    document.addEventListener('fullscreenchange', onFs)
-    onFs()
-    return () => document.removeEventListener('fullscreenchange', onFs)
-  }, [])
+    if (!isImmersive) return
+
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = originalOverflow
+    }
+  }, [isImmersive])
+
 
   useEffect(() => {
     return () => {
@@ -458,17 +494,102 @@ export const ExcalidrawTool: React.FC = () => {
     }
   }
 
-  const toggleFullscreen = async () => {
-    try {
-      if (!document.fullscreenElement) {
-        await canvasHostRef.current?.requestFullscreen()
-      } else {
-        await document.exitFullscreen()
-      }
-    } catch {
-      // ignore
-    }
+  const toggleImmersive = () => {
+    setIsImmersive((prev) => !prev)
   }
+
+  const renderCanvas = (immersive: boolean) => {
+    if (!activeId || !activeScene) return null
+    const scene = latestSceneRef.current || activeScene
+
+    return (
+      <div className={cn('flex h-full flex-col min-h-0')}>
+        <div className={cn('flex items-center gap-2 mb-2', immersive && 'mb-3 rounded-2xl border border-border bg-background/70 px-3 py-2 backdrop-blur-xl')}>
+          <Input
+            value={titleInput}
+            onChange={(e) => updateTitleLocalOnly(e.target.value)}
+            className="h-9 bg-muted/10"
+          />
+
+          <Button
+            onClick={saveToCloud}
+            className="h-9"
+            disabled={cloudSaving || !activeHasUnsavedCloudChanges}
+            title="保存到云端"
+          >
+            {cloudSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                保存中…
+              </>
+            ) : (
+              <>
+                <CloudUpload className="w-4 h-4 mr-2" />
+                保存到云端
+              </>
+            )}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted/30"
+            onClick={toggleImmersive}
+            title={immersive ? '退出沉浸模式' : '进入沉浸模式'}
+          >
+            {immersive ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
+            onClick={() => handleDelete(activeId)}
+            title="删除"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {immersive ? (
+          <div className="mb-3 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-[12px] text-primary">
+            当前为应用内沉浸模式。按 ESC 将优先作用于白板内部操作，不会直接退出当前工作区。
+          </div>
+        ) : (
+          <div className={cn('mb-2 text-[12px] px-3 py-2 rounded-lg border', activeIsLocalOnly ? 'border-primary/25 bg-primary/10 text-primary' : 'border-border bg-muted/10 text-muted-foreground')}>
+            {activeIsLocalOnly ? '当前更改仅保存在本地。需要跨设备同步，请点击「保存到云端」。' : '当前为云端版本（如有修改，会先保存到本地草稿）。'}
+          </div>
+        )}
+
+        <div className={cn('flex-1 min-h-0 rounded-lg border border-border overflow-hidden bg-background', immersive && 'rounded-3xl')}>
+          {ExcalidrawComponent ? (
+            <ExcalidrawComponent
+              key={`${activeId}:${immersive ? 'immersive' : 'inline'}`}
+              initialData={{
+                elements: scene.elements,
+                appState: scene.appState,
+                files: {},
+              }}
+              onChange={(elements, appState) => {
+                const nextScene: SceneData = {
+                  elements,
+                  appState: stripNonSerializableAppState(appState),
+                }
+                latestSceneRef.current = nextScene
+                scheduleLocalPersist(nextScene)
+              }}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              正在加载白板编辑器...
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
 
   if (!user) {
     return (
@@ -578,79 +699,32 @@ export const ExcalidrawTool: React.FC = () => {
             <div className="flex-1 flex items-center justify-center text-muted-foreground">请选择或新建一个白板</div>
           ) : (
             <>
-              <div className="flex items-center gap-2 mb-2">
-                <Input
-                  value={titleInput}
-                  onChange={(e) => updateTitleLocalOnly(e.target.value)}
-                  className="h-9 bg-muted/10"
-                />
+              {renderCanvas(false)}
 
-                <Button
-                  onClick={saveToCloud}
-                  className="h-9"
-                  disabled={cloudSaving || !activeHasUnsavedCloudChanges}
-                  title="保存到云端"
-                >
-                  {cloudSaving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      保存中…
-                    </>
-                  ) : (
-                    <>
-                      <CloudUpload className="w-4 h-4 mr-2" />
-                      保存到云端
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                  onClick={toggleFullscreen}
-                  title={isFullscreen ? '退出全屏' : '全屏'}
-                >
-                  {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
-                  onClick={() => handleDelete(activeId)}
-                  title="删除"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-
-              <div className={cn('mb-2 text-[12px] px-3 py-2 rounded-lg border', activeIsLocalOnly ? 'border-primary/25 bg-primary/10 text-primary' : 'border-border bg-muted/10 text-muted-foreground')}>
-                {activeIsLocalOnly ? '当前更改仅保存在本地。需要跨设备同步，请点击「保存到云端」。' : '当前为云端版本（如有修改，会先保存到本地草稿）。'}
-              </div>
-
-              <div ref={canvasHostRef} className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden bg-background">
-                <Excalidraw
-                  key={activeId}
-                  initialData={{
-                    elements: activeScene.elements,
-                    appState: activeScene.appState,
-                    files: {},
-                  }}
-                  onChange={(elements, appState) => {
-                    const scene: SceneData = {
-                      elements,
-                      appState: stripNonSerializableAppState(appState),
-                    }
-                    latestSceneRef.current = scene
-                    scheduleLocalPersist(scene)
-                  }}
-                />
-              </div>
             </>
           )}
         </div>
       </div>
+      {isImmersive
+        ? createPortal(
+            <div className="fixed inset-0 z-[9999] bg-[#070b16]/95 backdrop-blur-xl p-4 md:p-6">
+              <div className="mx-auto flex h-full max-w-[1800px] flex-col rounded-[28px] border border-border bg-background/85 p-4 shadow-2xl md:p-5">
+                <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-border bg-background/70 px-4 py-3 backdrop-blur">
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">沉浸白板</div>
+                    <div className="text-xs text-muted-foreground">退出请使用右侧按钮，ESC 会优先交给白板内部处理。</div>
+                  </div>
+                  <Button variant="outline" onClick={toggleImmersive}>
+                    <Minimize2 className="w-4 h-4 mr-2" />退出沉浸
+                  </Button>
+                </div>
+                <div className="min-h-0 flex-1">{renderCanvas(true)}</div>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   )
 }
+

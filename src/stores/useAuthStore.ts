@@ -1,124 +1,216 @@
 import { create } from 'zustand'
-import { User } from '@supabase/supabase-js'
+import { type AuthChangeEvent, type User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+
+export type ProfileStatus = 'idle' | 'loading' | 'ready' | 'missing' | 'error'
+
+export type UserProfile = {
+  email: string | null
+  is_activated: boolean
+  is_super_admin: boolean
+  activated_at: string | null
+}
 
 interface AuthState {
   user: User | null
-  profile: {
-    is_activated: boolean
-    email: string | null
-  } | null
+  profile: UserProfile | null
+  profileStatus: ProfileStatus
+  profileError: string | null
   loading: boolean
   initialized: boolean
-  setUser: (user: User | null) => void
-  fetchProfile: (userId: string) => Promise<void>
+  setUser: (user: User | null) => Promise<void>
+  fetchProfile: (userId: string) => Promise<UserProfile | null>
+  refreshProfile: () => Promise<void>
   signOut: () => Promise<void>
   initialize: () => Promise<void>
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
-  profile: null,
-  loading: true,
-  initialized: false,
+let initializePromise: Promise<void> | null = null
+let authSubscription: { unsubscribe: () => void } | null = null
 
-  setUser: (user) => {
-    set({ user })
-    if (user) {
-      get().fetchProfile(user.id)
-    } else {
-      set({ profile: null, loading: false })
-    }
-  },
-
-  fetchProfile: async (userId) => {
-    console.log('[fetchProfile] START', { userId, timestamp: Date.now() })
-    const hadProfile = !!get().profile
-    if (!hadProfile) set({ loading: true })
-
-    const fetchOnce = async () => {
-      const controller = new AbortController()
-      const timer = window.setTimeout(() => controller.abort(), 8000)
-      try {
-        console.log('[fetchProfile] Sending request...', Date.now())
-        const q: any = supabase.from('user_profiles').select('is_activated, email').eq('id', userId).single()
-        const { data, error } = await (typeof q.abortSignal === 'function' ? q.abortSignal(controller.signal) : q)
-        console.log('[fetchProfile] Response received', { data, error, timestamp: Date.now() })
-        if (error) throw error
-        set({ profile: data, loading: false })
-        return true
-      } finally {
-        window.clearTimeout(timer)
-      }
-    }
-
-    let retries = 3
-    while (retries > 0) {
-      try {
-        const ok = await fetchOnce()
-        if (ok) {
-          console.log('[fetchProfile] SUCCESS', Date.now())
-          return
-        }
-      } catch (error) {
-        console.error(`[fetchProfile] Error (retries left: ${retries - 1}):`, error)
-        retries--
-        if (retries > 0) {
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-        }
-      }
-    }
-
-    console.log('[fetchProfile] FAILED after retries', Date.now())
-    set({ loading: false })
-  },
-
-
-
-
-  signOut: async () => {
-    await supabase.auth.signOut()
-    set({ user: null, profile: null })
-  },
-
-  initialize: async () => {
-    if (get().initialized) return
-
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session?.user) {
-      set({ user: session.user })
-      await get().fetchProfile(session.user.id)
-    }
-
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[onAuthStateChange]', { 
-        event, 
-        userId: session?.user?.id, 
-        hasProfile: !!get().profile,
-        timestamp: Date.now() 
-      })
-      if (session?.user) {
-        const prevUserId = get().user?.id
-        set({ user: session.user, initialized: true })
-
-        // CRITICAL: Skip fetchProfile on tab focus recovery to avoid blocking other requests
-        // Only fetch profile on true auth changes (initial load, user change, explicit update)
-        const shouldFetch =
-          (event === 'INITIAL_SESSION' && !get().profile) ||
-          event === 'USER_UPDATED' ||
-          (prevUserId && prevUserId !== session.user.id)
-
-        console.log('[onAuthStateChange] shouldFetch?', shouldFetch, { event, hasProfile: !!get().profile })
-        
-        if (shouldFetch) {
-          await get().fetchProfile(session.user.id)
-        }
-      } else {
-        set({ user: null, profile: null, initialized: true, loading: false })
-      }
-    })
-
-    set({ initialized: true, loading: false })
+function normalizeProfile(row: any): UserProfile {
+  return {
+    email: typeof row?.email === 'string' ? row.email : null,
+    is_activated: !!row?.is_activated,
+    is_super_admin: !!row?.is_super_admin,
+    activated_at: typeof row?.activated_at === 'string' ? row.activated_at : null,
   }
-}))
+}
 
+export const useAuthStore = create<AuthState>((set, get) => {
+  const applyUser = async (user: User | null) => {
+    if (!user) {
+      set({
+        user: null,
+        profile: null,
+        profileStatus: 'idle',
+        profileError: null,
+        loading: false,
+        initialized: true,
+      })
+      return
+    }
+
+    set({ user, loading: true, profileError: null })
+    await get().fetchProfile(user.id)
+    set({ user, initialized: true })
+  }
+
+  const handleAuthChange = async (event: AuthChangeEvent, user: User | null) => {
+    if (!user) {
+      await applyUser(null)
+      return
+    }
+
+    const state = get()
+    const sameUser = user.id === state.user?.id
+    const hasReadyProfile =
+      sameUser &&
+      state.profileStatus === 'ready' &&
+      state.profile != null
+
+    // Supabase may emit auth events again when a tab regains focus or a token
+    // is refreshed. Keep the cached profile for the same user to avoid turning
+    // the whole app back into a loading state.
+    if (hasReadyProfile) {
+      set({
+        user,
+        profileError: null,
+        loading: false,
+        initialized: true,
+      })
+      return
+    }
+
+    if (
+      event === 'INITIAL_SESSION' &&
+      state.initialized &&
+      sameUser &&
+      state.profileStatus === 'ready'
+    ) {
+      return
+    }
+
+    await applyUser(user)
+  }
+
+  return {
+    user: null,
+    profile: null,
+    profileStatus: 'idle',
+    profileError: null,
+    loading: true,
+    initialized: false,
+
+    setUser: applyUser,
+
+    fetchProfile: async (userId) => {
+      set({ profileStatus: 'loading', profileError: null, loading: true })
+
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('email, is_activated, is_super_admin, activated_at')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (get().user?.id !== userId) {
+        return null
+      }
+
+      if (error) {
+        console.error('[useAuthStore] fetchProfile failed:', error)
+        set({
+          profile: null,
+          profileStatus: 'error',
+          profileError: error.message || '账户资料加载失败',
+          loading: false,
+        })
+        return null
+      }
+
+      if (!data) {
+        set({
+          profile: null,
+          profileStatus: 'missing',
+          profileError: '账户资料未就绪，请联系管理员检查账户配置。',
+          loading: false,
+        })
+        return null
+      }
+
+      const profile = normalizeProfile(data)
+      set({
+        profile,
+        profileStatus: 'ready',
+        profileError: null,
+        loading: false,
+      })
+      return profile
+    },
+
+    refreshProfile: async () => {
+      const user = get().user
+      if (!user) {
+        set({
+          profile: null,
+          profileStatus: 'idle',
+          profileError: null,
+          loading: false,
+        })
+        return
+      }
+
+      await get().fetchProfile(user.id)
+    },
+
+    signOut: async () => {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error('[useAuthStore] signOut failed:', error)
+      }
+
+      set({
+        user: null,
+        profile: null,
+        profileStatus: 'idle',
+        profileError: null,
+        loading: false,
+        initialized: true,
+      })
+    },
+
+    initialize: async () => {
+      if (get().initialized && authSubscription) {
+        return
+      }
+
+      if (initializePromise) {
+        return initializePromise
+      }
+
+      initializePromise = (async () => {
+        set({ loading: true })
+
+        const { data, error } = await supabase.auth.getSession()
+        if (error) {
+          console.error('[useAuthStore] getSession failed:', error)
+        }
+
+        await applyUser(data.session?.user ?? null)
+
+        if (!authSubscription) {
+          const { data: authData } = supabase.auth.onAuthStateChange((event, session) => {
+            void handleAuthChange(event, session?.user ?? null)
+          })
+          authSubscription = authData.subscription
+        }
+
+        set({ initialized: true, loading: false })
+      })().finally(() => {
+        initializePromise = null
+      })
+
+      return initializePromise
+    },
+  }
+})

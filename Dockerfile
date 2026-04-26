@@ -25,12 +25,24 @@ ENV VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
 RUN npm run build
 
 
-FROM ${IMAGE_REGISTRY}/library/nginx:1.27-alpine
+FROM ${IMAGE_REGISTRY}/library/node:20-alpine
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-EXPOSE 80
+RUN npm config set registry https://registry.npmmirror.com
+
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --no-audit --no-fund
+
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/server ./server
+
+ENV NODE_ENV=production
+ENV PORT=8080
+
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1
+  CMD node -e "fetch('http://127.0.0.1:' + (process.env.PORT || 8080) + '/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+
+CMD ["npm", "run", "start"]
