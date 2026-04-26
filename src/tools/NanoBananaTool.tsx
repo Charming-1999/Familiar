@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Image as ImageIcon, Loader2, Square, ExternalLink, Sparkles, Upload, RotateCcw, X } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { Image as ImageIcon, Loader2, Square, ExternalLink, Sparkles, Upload, RotateCcw, X, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
 import { cn } from '../lib/utils'
 import { supabase } from '../lib/supabase'
+import { useAuthStore } from '../stores/useAuthStore'
 
 
 type NanoBananaModel =
@@ -51,24 +53,37 @@ type NanoBananaJob = {
   error?: string
 }
 
+type HistoryItem = {
+  id: string
+  user_id: string
+  prompt: string
+  model: string
+  aspect_ratio: string | null
+  image_url: string
+  original_url: string | null
+  created_at: string
+}
+
 const LS_API_KEY = 'nanobanana:apiKey'
 const LS_BASE_URL = 'nanobanana:baseUrl'
 
 const DEFAULT_BASE_URL = 'https://grsai.dakka.com.cn'
 
+const HISTORY_PAGE_SIZE = 12
+
 const MODELS: Array<{ id: NanoBananaModel; label: string }> = [
-  { id: 'gpt-image-2', label: 'gpt-image-2（默认）' },
-  { id: 'nano-banana-fast', label: 'nano-banana-fast（快速）' },
-  { id: 'nano-banana', label: 'nano-banana（标准）' },
-  { id: 'nano-banana-pro', label: 'nano-banana-pro（Pro）' },
-  { id: 'nano-banana-pro-vt', label: 'nano-banana-pro-vt（Pro VT）' },
-  { id: 'nano-banana-pro-cl', label: 'nano-banana-pro-cl（Pro CL）' },
-  { id: 'nano-banana-pro-vip', label: 'nano-banana-pro-vip（Pro VIP）' },
-  { id: 'nano-banana-pro-4k-vip', label: 'nano-banana-pro-4k-vip（4K VIP）' },
+  { id: 'gpt-image-2', label: 'gpt-image-2' },
+  { id: 'nano-banana-fast', label: 'nano-banana-fast' },
+  { id: 'nano-banana', label: 'nano-banana' },
+  { id: 'nano-banana-pro', label: 'nano-banana-pro' },
+  { id: 'nano-banana-pro-vt', label: 'nano-banana-pro-vt' },
+  { id: 'nano-banana-pro-cl', label: 'nano-banana-pro-cl' },
+  { id: 'nano-banana-pro-vip', label: 'nano-banana-pro-vip' },
+  { id: 'nano-banana-pro-4k-vip', label: 'nano-banana-pro-4k-vip' },
 ]
 
 const ASPECT_RATIOS: Array<{ id: AspectRatio; label: string }> = [
-  { id: 'auto', label: 'auto（自动）' },
+  { id: 'auto', label: 'auto' },
   { id: '1:1', label: '1:1' },
   { id: '16:9', label: '16:9' },
   { id: '9:16', label: '9:16' },
@@ -128,7 +143,6 @@ function parseUrls(text: string): string[] {
     .map((s) => s.trim())
     .filter(Boolean)
 
-  // 去重（保持顺序）
   const seen = new Set<string>()
   const out: string[] = []
   for (const u of raw) {
@@ -146,7 +160,17 @@ function getImageSizeOptions(model: NanoBananaModel): ImageSize[] {
   return []
 }
 
+function formatTime(iso: string) {
+  try {
+    return new Date(iso).toLocaleString()
+  } catch {
+    return iso
+  }
+}
+
 export const NanoBananaTool: React.FC = () => {
+  const { user } = useAuthStore()
+
   const [apiKey, setApiKey] = useState('')
   const [baseUrl, setBaseUrl] = useState(DEFAULT_BASE_URL)
 
@@ -166,12 +190,93 @@ export const NanoBananaTool: React.FC = () => {
   const abortRef = useRef<AbortController | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const imageSizeOptions = useMemo(() => getImageSizeOptions(model), [model])
+  // History state
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
+  const [historyPage, setHistoryPage] = useState(0)
+  const [historyTotal, setHistoryTotal] = useState(0)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [persistingUrls, setPersistingUrls] = useState(false)
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 
+  const imageSizeOptions = useMemo(() => getImageSizeOptions(model), [model])
   const showImageSize = imageSizeOptions.length > 0
+  const totalPages = Math.max(1, Math.ceil(historyTotal / HISTORY_PAGE_SIZE))
+
+  // ── History loading ──
+  const loadHistory = useCallback(async (page: number) => {
+    if (!user) return
+    setHistoryLoading(true)
+    try {
+      const { count } = await supabase
+        .from('nanobanana_history')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+      setHistoryTotal(count ?? 0)
+
+      const from = page * HISTORY_PAGE_SIZE
+      const to = from + HISTORY_PAGE_SIZE - 1
+      const { data } = await supabase
+        .from('nanobanana_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .range(from, to)
+
+      setHistoryItems((data as HistoryItem[]) || [])
+      setHistoryPage(page)
+    } catch {
+      // ignore
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [user])
+
+  // ── Persist results to permanent storage ──
+  const persistResults = useCallback(async (
+    results: NanoBananaResultItem[],
+    promptText: string,
+    modelId: string,
+    ratio: string
+  ) => {
+    if (!user || results.length === 0) return
+    setPersistingUrls(true)
+    try {
+      for (const item of results) {
+        try {
+          const resp = await fetch(item.url)
+          if (!resp.ok) continue
+          const blob = await resp.blob()
+          const ext = (blob.type.split('/')[1] || 'png').replace('jpeg', 'jpg')
+          const path = `uploads/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+
+          const { error: upErr } = await supabase.storage
+            .from('nanobanana_results')
+            .upload(path, blob, { cacheControl: '31536000', upsert: false })
+          if (upErr) continue
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('nanobanana_results')
+            .getPublicUrl(path)
+
+          await supabase.from('nanobanana_history').insert({
+            user_id: user.id,
+            prompt: promptText,
+            model: modelId,
+            aspect_ratio: ratio,
+            image_url: publicUrl,
+            original_url: item.url,
+          })
+        } catch {
+          // skip individual failures
+        }
+      }
+      loadHistory(0)
+    } finally {
+      setPersistingUrls(false)
+    }
+  }, [user, loadHistory])
 
   useEffect(() => {
-    // 初始化 key/baseUrl（支持 .env 默认值，也支持本地存储覆盖）
     const envKey = (import.meta as any)?.env?.VITE_NANOBANANA_API_KEY
     const storedKey = window.localStorage.getItem(LS_API_KEY)
     setApiKey((storedKey || envKey || '').toString())
@@ -185,12 +290,26 @@ export const NanoBananaTool: React.FC = () => {
     }
   }, [])
 
+  // Load history on mount
   useEffect(() => {
-    // 当模型切换时，确保 imageSize 落在允许范围内
+    if (user) loadHistory(0)
+  }, [user, loadHistory])
+
+  useEffect(() => {
     if (!showImageSize) return
     if (imageSizeOptions.includes(imageSize)) return
     setImageSize(imageSizeOptions[0] || '1K')
   }, [model, showImageSize, imageSize, imageSizeOptions])
+
+  // Lightbox ESC handler
+  useEffect(() => {
+    if (!lightboxUrl) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxUrl(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [lightboxUrl])
 
   const stop = () => {
     abortRef.current?.abort()
@@ -224,7 +343,6 @@ export const NanoBananaTool: React.FC = () => {
           cacheControl: '3600',
           upsert: false
         })
-
 
       if (uploadError) throw uploadError
 
@@ -309,18 +427,16 @@ export const NanoBananaTool: React.FC = () => {
   const referenceUrls = useMemo(() => parseUrls(urlsText), [urlsText])
 
   const submitAndPoll = async () => {
-
-
     const key = apiKey.trim()
     const base = baseUrl.trim().replace(/\/$/, '')
     const p = prompt.trim()
 
     if (!key) {
-      setError('请先填写 API Key（Authorization: Bearer apikey）')
+      setError('请填写 API Key')
       return
     }
     if (!p) {
-      setError('请先填写提示词（prompt）')
+      setError('请填写提示词')
       return
     }
 
@@ -336,7 +452,6 @@ export const NanoBananaTool: React.FC = () => {
     try {
       const urls = parseUrls(urlsText)
 
-      // 如果需要生成多张图片，发送多个任务
       const tasks: Promise<any>[] = []
       for (let i = 0; i < numImages; i++) {
         const body: any = {
@@ -365,10 +480,8 @@ export const NanoBananaTool: React.FC = () => {
         )
       }
 
-      // 等待所有任务提交
       const submitResults = await Promise.all(tasks)
       
-      // 提取所有任务ID
       const jobIds: string[] = []
       for (const result of submitResults) {
         if (!result) throw new Error('API返回格式错误')
@@ -377,7 +490,6 @@ export const NanoBananaTool: React.FC = () => {
         jobIds.push(jobId)
       }
 
-      // 初始化job状态
       setJob({
         id: jobIds.join(','),
         results: [],
@@ -387,7 +499,6 @@ export const NanoBananaTool: React.FC = () => {
         error: '',
       })
 
-      // 轮询所有任务的结果
       const allResults: NanoBananaResultItem[] = []
       let completedCount = 0
       const jobStatuses = new Map<string, string>()
@@ -425,7 +536,6 @@ export const NanoBananaTool: React.FC = () => {
           if (status === 'succeeded') {
             completedCount++
             const items = Array.isArray(result?.results) ? result.results : []
-            // 避免重复添加
             for (const item of items) {
               if (!allResults.find(r => r.url === item.url)) {
                 allResults.push(item)
@@ -436,7 +546,6 @@ export const NanoBananaTool: React.FC = () => {
           }
         }
 
-        // 更新进度
         const avgProgress = Math.floor(totalProgress / jobIds.length)
         setJob({
           id: jobIds.join(','),
@@ -450,6 +559,11 @@ export const NanoBananaTool: React.FC = () => {
 
       setSubmitting(false)
       abortRef.current = null
+
+      // Persist results in background
+      if (allResults.length > 0) {
+        persistResults(allResults, p, model, aspectRatio)
+      }
     } catch (e: any) {
       if (e?.name === 'AbortError') return
       setError(e?.message || '请求失败')
@@ -462,7 +576,7 @@ export const NanoBananaTool: React.FC = () => {
   const status = job?.status
 
   return (
-    <div className="space-y-6 h-full flex flex-col px-2 py-4 [&_*]:!font-sans">
+    <div className="space-y-6 px-2 py-4 overflow-y-auto [&_*]:!font-sans">
       <style>{`
         [data-theme='pixel'] .nanobanana-override,
         [data-theme='pixel'] .nanobanana-override * {
@@ -493,7 +607,6 @@ export const NanoBananaTool: React.FC = () => {
           background-color: hsl(var(--background)) !important;
         }
         
-        /* 超强优先级覆盖：针对像素风主题的 select option */
         body[data-theme='pixel'] .nanobanana-override select option,
         body[data-theme='pixel'] select.nanobanana-select option,
         [data-theme='pixel'] .nanobanana-override select option,
@@ -527,7 +640,6 @@ export const NanoBananaTool: React.FC = () => {
           text-shadow: none !important;
         }
         
-        /* option hover 状态 */
         body[data-theme='pixel'] .nanobanana-override select option:hover,
         body[data-theme='pixel'] select.nanobanana-select option:hover,
         [data-theme='pixel'] .nanobanana-override select option:hover,
@@ -541,8 +653,9 @@ export const NanoBananaTool: React.FC = () => {
           font-size: 1.5rem !important;
         }
       `}</style>
-      <div className="nanobanana-override flex items-center justify-between gap-4 flex-wrap px-2">
 
+      {/* Header */}
+      <div className="nanobanana-override flex items-center justify-between gap-4 flex-wrap px-2">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30">
             <Sparkles className="w-5 h-5 text-primary" />
@@ -553,6 +666,12 @@ export const NanoBananaTool: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {persistingUrls && (
+            <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              保存中...
+            </span>
+          )}
           {submitting ? (
             <Button variant="destructive" size="sm" onClick={stop} className="shadow-lg">
               <Square className="w-4 h-4 mr-2" />
@@ -567,30 +686,26 @@ export const NanoBananaTool: React.FC = () => {
         </div>
       </div>
 
-      <div className="nanobanana-override grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0 px-2">
+      {/* Two-column: Form + Results */}
+      <div className="nanobanana-override grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[500px] px-2">
 
-
-        {/* 左：表单 */}
+        {/* Left: Form */}
         <div className="space-y-4 overflow-y-auto pr-2">
           <div className="glass-card p-5 rounded-xl space-y-4 shadow-sm border-2">
 
             <div className="text-sm font-bold text-foreground flex items-center gap-2">
               <div className="w-1 h-4 bg-primary rounded-full"></div>
-              鉴权与接口
+              API 设置
             </div>
 
-
             <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">API Key（Bearer）</div>
+              <div className="text-xs text-muted-foreground">API Key</div>
               <Input
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="apikey"
                 className="bg-muted/10"
               />
-              <div className="text-[11px] text-muted-foreground">
-                将用于请求头：<span className="font-mono">Authorization: Bearer apikey</span>
-              </div>
             </div>
 
             <div className="space-y-1">
@@ -607,13 +722,12 @@ export const NanoBananaTool: React.FC = () => {
           <div className="glass-card p-5 rounded-xl space-y-4 shadow-sm border-2">
             <div className="text-sm font-bold text-foreground flex items-center gap-2">
               <div className="w-1 h-4 bg-primary rounded-full"></div>
-              生成参数
+              参数
             </div>
 
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className={cn('grid gap-3', showImageSize ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3')}>
               <div className="space-y-1">
-                <div className="text-xs text-muted-foreground">模型（model）</div>
+                <div className="text-xs text-muted-foreground">模型</div>
                 <select
                   value={model}
                   onChange={(e) => setModel(e.target.value as NanoBananaModel)}
@@ -628,7 +742,7 @@ export const NanoBananaTool: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <div className="text-xs text-muted-foreground">输出比例（aspectRatio）</div>
+                <div className="text-xs text-muted-foreground">比例</div>
                 <select
                   value={aspectRatio}
                   onChange={(e) => setAspectRatio(e.target.value as AspectRatio)}
@@ -643,7 +757,7 @@ export const NanoBananaTool: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <div className="text-xs text-muted-foreground">生成数量（多任务并行）</div>
+                <div className="text-xs text-muted-foreground">数量</div>
                 <select
                   value={numImages}
                   onChange={(e) => setNumImages(Number(e.target.value))}
@@ -655,12 +769,11 @@ export const NanoBananaTool: React.FC = () => {
                   <option value={4}>4 张</option>
                   <option value={5}>5 张</option>
                 </select>
-                <div className="text-[11px] text-muted-foreground">会并行发起多个生图任务，汇总所有结果。</div>
               </div>
 
-              {showImageSize ? (
+              {showImageSize && (
                 <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">分辨率（imageSize）</div>
+                  <div className="text-xs text-muted-foreground">分辨率</div>
                   <select
                     value={imageSize}
                     onChange={(e) => setImageSize(e.target.value as ImageSize)}
@@ -672,26 +785,18 @@ export const NanoBananaTool: React.FC = () => {
                       </option>
                     ))}
                   </select>
-                  <div className="text-[11px] text-muted-foreground">分辨率越高，生成时间越长；不同模型可选项不同。</div>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">分辨率（imageSize）</div>
-                  <div className="h-9 rounded-md border border-border bg-muted/10 px-3 text-sm flex items-center text-muted-foreground">
-                    当前模型不支持（仅 Pro 系列支持）
-                  </div>
                 </div>
               )}
             </div>
 
-            <div className="space-y-2">
-              <div className="text-xs text-muted-foreground">提示词（prompt）</div>
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">提示词</div>
               <textarea
                 className={cn(
-                  'w-full min-h-[140px] bg-muted/10 border border-border rounded-lg p-3 text-sm resize-y focus:outline-none focus:border-primary/50 transition-colors',
+                  'w-full min-h-[120px] bg-muted/10 border border-border rounded-lg p-3 text-sm resize-y focus:outline-none focus:border-primary/50 transition-colors',
                   submitting && 'opacity-70'
                 )}
-                placeholder="例如：一只可爱的猫咪在草地上玩耍"
+                placeholder="描述你想要生成的图片"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
               />
@@ -699,7 +804,7 @@ export const NanoBananaTool: React.FC = () => {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <div className="text-xs text-muted-foreground">参考图（支持多张上传或粘贴 URL）</div>
+                <div className="text-xs text-muted-foreground">参考图</div>
                 <div className="flex items-center gap-2">
                   <input
                     type="file"
@@ -742,54 +847,36 @@ export const NanoBananaTool: React.FC = () => {
                 </div>
               )}
 
-
               <textarea
                 className={cn(
-                  'w-full min-h-[80px] bg-muted/10 border border-border rounded-lg p-3 text-sm font-mono resize-y focus:outline-none focus:border-primary/50 transition-colors',
+                  'w-full min-h-[60px] bg-muted/10 border border-border rounded-lg p-3 text-sm font-mono resize-y focus:outline-none focus:border-primary/50 transition-colors',
                   submitting && 'opacity-70'
                 )}
-                placeholder="直接粘贴图片 URL，多条用换行或逗号分隔\n支持 Ctrl+V 粘贴图片文件自动上传"
+                placeholder="粘贴图片 URL"
                 value={urlsText}
                 onChange={(e) => setUrlsText(e.target.value)}
                 onPaste={handlePaste}
               />
             </div>
 
-
-
             {error ? (
               <div className="rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-2 text-sm text-red-400">
                 {error}
               </div>
             ) : null}
-
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-              <div>
-                采用轮询模式（<span className="font-mono">webHook = -1</span>）获取进度与结果
-              </div>
-              <div className="flex items-center gap-2">
-                {submitting ? (
-                  <span className="inline-flex items-center gap-2">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    请求中…
-                  </span>
-                ) : null}
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* 右：进度与结果 */}
+        {/* Right: Status + Results */}
         <div className="space-y-4 min-h-0 flex flex-col">
-          <div className="glass-card p-5 rounded-xl space-y-4 shadow-sm border-2">
+          <div className="glass-card p-5 rounded-xl space-y-3 shadow-sm border-2">
             <div className="flex items-center justify-between">
               <div className="text-sm font-bold text-foreground flex items-center gap-2">
                 <div className="w-1 h-4 bg-primary rounded-full"></div>
                 任务状态
               </div>
-
               {job?.id ? (
-                <div className="text-xs text-muted-foreground font-mono">id: {job.id}</div>
+                <div className="text-xs text-muted-foreground font-mono truncate max-w-[200px]">id: {job.id}</div>
               ) : null}
             </div>
 
@@ -833,36 +920,35 @@ export const NanoBananaTool: React.FC = () => {
           </div>
 
           <div className="glass-card p-5 rounded-xl flex-1 min-h-0 overflow-hidden flex flex-col shadow-sm border-2">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-3">
               <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/30">
                 <ImageIcon className="w-4 h-4 text-primary" />
               </div>
               <div className="text-sm font-bold text-foreground">生成结果</div>
             </div>
 
-
             {!job ? (
               <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-                还没有生成记录，填写参数后点击"生成"
+                暂无结果
               </div>
             ) : job.results.length === 0 ? (
               <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-                {submitting ? '生成中…（等待结果返回）' : '暂无结果'}
+                {submitting ? '生成中...' : '暂无结果'}
               </div>
             ) : (
               <div className="flex-1 overflow-y-auto pr-2 -mr-2">
                 <div className="grid grid-cols-1 gap-4">
                   {job.results.map((r, idx) => (
                     <div key={`${r.url}-${idx}`} className="rounded-xl border border-border bg-gradient-to-br from-muted/5 to-muted/10 overflow-hidden hover:shadow-lg transition-shadow">
-                      <div className="w-full bg-black/20 flex items-center justify-center overflow-hidden">
+                      <div className="w-full bg-black/20 flex items-center justify-center overflow-hidden cursor-pointer" onClick={() => setLightboxUrl(r.url)}>
                         <img
                           src={r.url}
                           alt={r.content || `result-${idx + 1}`}
                           className="w-full h-auto object-contain max-h-[600px]"
                         />
                       </div>
-                      <div className="p-4 space-y-3">
-                        <div className="text-sm text-foreground/80 leading-relaxed">{r.content || '—'}</div>
+                      <div className="p-3 space-y-2">
+                        {r.content && <div className="text-sm text-foreground/80 leading-relaxed">{r.content}</div>}
                         <div className="flex items-center justify-between gap-3 flex-wrap">
                           <a
                             className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline font-medium"
@@ -871,15 +957,15 @@ export const NanoBananaTool: React.FC = () => {
                             rel="noreferrer"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
-                            在新窗口打开
+                            打开
                           </a>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => addReferenceUrl(r.url)}
-                            className="h-8 text-xs"
+                            className="h-7 text-xs"
                           >
-                            <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                            <RotateCcw className="w-3 h-3 mr-1" />
                             作为参考图
                           </Button>
                         </div>
@@ -890,9 +976,105 @@ export const NanoBananaTool: React.FC = () => {
               </div>
             )}
           </div>
-
         </div>
       </div>
+
+      {/* History Section */}
+      {user && (
+        <div className="nanobanana-override px-2 space-y-4">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            <div className="text-sm font-bold text-foreground">生成历史</div>
+            {historyTotal > 0 && (
+              <span className="text-[11px] px-1.5 py-0.5 rounded bg-muted/30 border border-border text-muted-foreground">
+                {historyTotal}
+              </span>
+            )}
+          </div>
+
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin" />
+            </div>
+          ) : historyItems.length === 0 ? (
+            <div className="text-center py-12 text-sm text-muted-foreground">暂无历史记录</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {historyItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="group rounded-xl border border-border bg-gradient-to-br from-muted/5 to-muted/10 overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all cursor-pointer"
+                    onClick={() => setLightboxUrl(item.image_url)}
+                  >
+                    <div className="aspect-square bg-black/10 overflow-hidden">
+                      <img src={item.image_url} alt={item.prompt} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    </div>
+                    <div className="p-2.5 space-y-1">
+                      <div className="text-xs text-foreground/80 truncate">{item.prompt}</div>
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>{item.model}</span>
+                        <span>{formatTime(item.created_at)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={historyPage === 0}
+                    onClick={() => loadHistory(historyPage - 1)}
+                    className="h-8"
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    上一页
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    {historyPage + 1} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={historyPage >= totalPages - 1}
+                    onClick={() => loadHistory(historyPage + 1)}
+                    className="h-8"
+                  >
+                    下一页
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxUrl && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] bg-black/85 flex items-center justify-center backdrop-blur-sm"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <img
+            src={lightboxUrl}
+            alt="preview"
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+            onClick={() => setLightboxUrl(null)}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }

@@ -154,8 +154,6 @@ export const ExcalidrawTool: React.FC = () => {
     return null
   }, [activeCloudDoc, activeDraft, activeLocalDoc])
 
-  const activeIsLocalOnly = !!activeLocalDoc || (!!activeCloudDoc && !!activeDraft)
-
   const activeHasUnsavedCloudChanges = useMemo(() => {
     if (activeLocalDoc) return true
     if (activeCloudDoc) return !!activeDraft && !!draftMeta[activeCloudDoc.id]
@@ -498,13 +496,29 @@ export const ExcalidrawTool: React.FC = () => {
     setIsImmersive((prev) => !prev)
   }
 
+  const switchCanvas = (id: string) => {
+    if (!user) return
+    latestSceneRef.current = null
+    if (id.startsWith('local:')) {
+      const doc = localDocs.find((d) => d.id === id)
+      setActiveDraft(null)
+      setTitleInput(doc?.title || '')
+    } else {
+      const cloud = cloudDocs.find((d) => d.id === id)
+      const draft = readDraft(user.id, id)
+      setActiveDraft(draft)
+      setTitleInput(draft?.title ?? cloud?.title ?? '')
+    }
+    setActiveId(id)
+  }
+
   const renderCanvas = (immersive: boolean) => {
     if (!activeId || !activeScene) return null
     const scene = latestSceneRef.current || activeScene
 
     return (
       <div className={cn('flex h-full flex-col min-h-0')}>
-        <div className={cn('flex items-center gap-2 mb-2', immersive && 'mb-3 rounded-2xl border border-border bg-background/70 px-3 py-2 backdrop-blur-xl')}>
+        <div className={cn('flex items-center gap-2', immersive ? 'px-3 py-2 border-b border-border shrink-0' : 'mb-2')}>
           <Input
             value={titleInput}
             onChange={(e) => updateTitleLocalOnly(e.target.value)}
@@ -551,17 +565,7 @@ export const ExcalidrawTool: React.FC = () => {
           </Button>
         </div>
 
-        {immersive ? (
-          <div className="mb-3 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-[12px] text-primary">
-            当前为应用内沉浸模式。按 ESC 将优先作用于白板内部操作，不会直接退出当前工作区。
-          </div>
-        ) : (
-          <div className={cn('mb-2 text-[12px] px-3 py-2 rounded-lg border', activeIsLocalOnly ? 'border-primary/25 bg-primary/10 text-primary' : 'border-border bg-muted/10 text-muted-foreground')}>
-            {activeIsLocalOnly ? '当前更改仅保存在本地。需要跨设备同步，请点击「保存到云端」。' : '当前为云端版本（如有修改，会先保存到本地草稿）。'}
-          </div>
-        )}
-
-        <div className={cn('flex-1 min-h-0 rounded-lg border border-border overflow-hidden bg-background', immersive && 'rounded-3xl')}>
+        <div className={cn('flex-1 min-h-0 rounded-lg border border-border overflow-hidden bg-background', immersive && 'rounded-none border-0')}>
           {ExcalidrawComponent ? (
             <ExcalidrawComponent
               key={`${activeId}:${immersive ? 'immersive' : 'inline'}`}
@@ -621,10 +625,6 @@ export const ExcalidrawTool: React.FC = () => {
         </div>
       </div>
 
-      <div className="mb-2 rounded-lg border border-border bg-muted/20 px-3 py-2 text-[12px] text-muted-foreground">
-        提示：编辑内容会自动保存到本地；只有点击「保存到云端」才会同步到云端（v1：仅矢量/文本，不含图片资源）。
-      </div>
-
       {error && <div className="text-xs text-red-400 mb-2">{error}</div>}
 
       <div className="flex-1 min-h-0 grid grid-cols-[260px_1fr] gap-3">
@@ -646,7 +646,7 @@ export const ExcalidrawTool: React.FC = () => {
                         ? 'border-primary/40 bg-primary/10 text-foreground'
                         : 'border-border bg-background/10 text-muted-foreground hover:bg-muted/30 hover:text-foreground'
                     )}
-                    onClick={() => setActiveId(d.id)}
+                    onClick={() => switchCanvas(d.id)}
                   >
                     <div className="text-sm font-medium truncate">{d.title?.trim() ? d.title : '未命名白板'}</div>
                     <div className="text-[11px] text-muted-foreground mt-1">{new Date(d.updatedAt).toLocaleString()}</div>
@@ -676,7 +676,7 @@ export const ExcalidrawTool: React.FC = () => {
                         ? 'border-primary/40 bg-primary/10 text-foreground'
                         : 'border-border bg-background/10 text-muted-foreground hover:bg-muted/30 hover:text-foreground'
                     )}
-                    onClick={() => setActiveId(d.id)}
+                    onClick={() => switchCanvas(d.id)}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="text-sm font-medium truncate">{d.title?.trim() ? d.title : '未命名白板'}</div>
@@ -706,19 +706,8 @@ export const ExcalidrawTool: React.FC = () => {
       </div>
       {isImmersive
         ? createPortal(
-            <div className="fixed inset-0 z-[9999] bg-[#070b16]/95 backdrop-blur-xl p-4 md:p-6">
-              <div className="mx-auto flex h-full max-w-[1800px] flex-col rounded-[28px] border border-border bg-background/85 p-4 shadow-2xl md:p-5">
-                <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-border bg-background/70 px-4 py-3 backdrop-blur">
-                  <div>
-                    <div className="text-sm font-semibold text-foreground">沉浸白板</div>
-                    <div className="text-xs text-muted-foreground">退出请使用右侧按钮，ESC 会优先交给白板内部处理。</div>
-                  </div>
-                  <Button variant="outline" onClick={toggleImmersive}>
-                    <Minimize2 className="w-4 h-4 mr-2" />退出沉浸
-                  </Button>
-                </div>
-                <div className="min-h-0 flex-1">{renderCanvas(true)}</div>
-              </div>
+            <div className="fixed inset-0 z-[9999] flex flex-col bg-background">
+              <div className="min-h-0 flex-1">{renderCanvas(true)}</div>
             </div>,
             document.body
           )
