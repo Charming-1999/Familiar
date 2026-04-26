@@ -219,29 +219,6 @@
     letter-spacing: inherit !important;
   }
 
-  /* IMPORTANT: avoid breaking Bytemd editor under pixel theme (native rules are too aggressive) */
-  :root[data-theme='pixel'] .notes-bytemd,
-  :root[data-theme='pixel'] .notes-bytemd * {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-    font-size: 14px !important;
-    line-height: 1.5 !important;
-    letter-spacing: normal !important;
-    text-transform: none !important;
-  }
-
-  :root[data-theme='pixel'] .notes-bytemd .bytemd {
-    background: #fff8ee !important;
-    border: 2px solid hsl(var(--border) / 0.95) !important;
-    border-radius: 14px !important;
-    box-shadow: var(--theme-card-shadow) !important;
-  }
-
-  :root[data-theme='pixel'] .notes-bytemd .bytemd-toolbar,
-  :root[data-theme='pixel'] .notes-bytemd .bytemd-status {
-    background: #fff3d9 !important;
-    border-color: hsl(var(--border)) !important;
-  }
-
   :root[data-theme='pixel'] .bg-muted\/20,
   :root[data-theme='pixel'] .bg-muted\/30,
   :root[data-theme='pixel'] .bg-background\/30 {
@@ -571,135 +548,6 @@
     background-attachment: fixed;
   }
 
-  /* Notes: Bytemd layout + theme overrides (fix preview rendering/height issues) */
-  .notes-bytemd {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-  }
-
-  .notes-bytemd .bytemd {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-  }
-
-  .notes-bytemd .bytemd-body {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    overflow: hidden;
-  }
-
-  .notes-bytemd .bytemd-split {
-    flex: 1;
-    display: flex;
-    min-height: 0;
-  }
-
-  .notes-bytemd .bytemd-split > * {
-    flex: 1;
-    min-width: 0;
-    min-height: 0;
-    overflow: auto;
-  }
-
-  .notes-bytemd .bytemd-editor,
-  .notes-bytemd .bytemd-preview {
-    height: 100% !important;
-    min-height: 0;
-    overflow: auto !important;
-  }
-
-  .notes-bytemd .CodeMirror {
-    height: 100% !important;
-    background: transparent !important;
-  }
-
-  .notes-bytemd .CodeMirror-scroll {
-    min-height: 100%;
-  }
-
-  /* Markdown preview styling (Tailwind preflight resets list/heading defaults) */
-  .notes-bytemd .bytemd-preview .markdown-body {
-    background: transparent !important;
-    color: inherit !important;
-    font-size: inherit;
-    line-height: 1.65;
-    padding: 16px 18px;
-
-    /* github-markdown-css defaults */
-    max-width: none !important;
-    margin: 0 !important;
-  }
-
-  .notes-bytemd .bytemd-preview .markdown-body ol {
-    list-style: decimal !important;
-    padding-left: 1.5rem !important;
-  }
-
-  .notes-bytemd .bytemd-preview .markdown-body ul {
-    list-style: disc !important;
-    padding-left: 1.5rem !important;
-  }
-
-  .notes-bytemd .bytemd-preview .markdown-body li {
-    display: list-item;
-  }
-
-  .notes-bytemd .bytemd-preview .markdown-body h1,
-  .notes-bytemd .bytemd-preview .markdown-body h2,
-  .notes-bytemd .bytemd-preview .markdown-body h3,
-  .notes-bytemd .bytemd-preview .markdown-body h4 {
-    color: hsl(var(--foreground));
-  }
-
-  /* Make preview readable in all app themes */
-  :root .notes-bytemd .bytemd {
-    background: hsl(var(--background)) !important;
-    color: hsl(var(--foreground)) !important;
-    border: 1px solid hsl(var(--border)) !important;
-    border-radius: 0.75rem;
-  }
-  :root .notes-bytemd .bytemd-toolbar,
-  :root .notes-bytemd .bytemd-status {
-    background: hsl(var(--secondary)) !important;
-    color: hsl(var(--secondary-foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-  }
-  :root .notes-bytemd .bytemd-preview {
-    background: hsl(var(--background)) !important;
-    color: hsl(var(--foreground)) !important;
-  }
-  :root .notes-bytemd .bytemd-preview a {
-    color: hsl(var(--primary)) !important;
-  }
-
-  /* Highlight.js (github.css is light) – add a dark-friendly override inside preview */
-  :root[data-theme='dark'] .notes-bytemd .bytemd-preview pre,
-  :root[data-theme='neon'] .notes-bytemd .bytemd-preview pre,
-  :root[data-theme='deepsea'] .notes-bytemd .bytemd-preview pre {
-    background: hsl(var(--muted)) !important;
-    border: 1px solid hsl(var(--border)) !important;
-  }
-  :root[data-theme='dark'] .notes-bytemd .bytemd-preview code,
-  :root[data-theme='neon'] .notes-bytemd .bytemd-preview code,
-  :root[data-theme='deepsea'] .notes-bytemd .bytemd-preview code {
-    color: hsl(var(--foreground)) !important;
-    background: hsl(var(--muted) / 0.6) !important;
-    border: 1px solid hsl(var(--border) / 0.8) !important;
-  }
-  :root[data-theme='dark'] .notes-bytemd .bytemd-preview .hljs,
-  :root[data-theme='neon'] .notes-bytemd .bytemd-preview .hljs,
-  :root[data-theme='deepsea'] .notes-bytemd .bytemd-preview .hljs {
-    background: transparent !important;
-    color: hsl(var(--foreground)) !important;
-  }
-
   /* Notes: iOS polish */
   :root[data-theme='ios'] .notes-tool h2 {
     font-style: normal !important;
@@ -713,37 +561,6 @@
 
   :root[data-theme='ios'] .notes-tool .bg-muted\/10 {
     background: hsl(var(--secondary) / 0.55) !important;
-  }
-
-  :root[data-theme='ios'] .notes-bytemd .bytemd {
-    border: 1px solid hsl(var(--border)) !important;
-    border-radius: 1.125rem !important;
-    overflow: hidden;
-    background: hsl(var(--background)) !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  }
-
-  :root[data-theme='ios'] .notes-bytemd .bytemd-toolbar,
-  :root[data-theme='ios'] .notes-bytemd .bytemd-status {
-    background: hsl(var(--secondary)) !important;
-    border-color: hsl(var(--border)) !important;
-  }
-
-  :root[data-theme='ios'] .notes-bytemd .bytemd-toolbar-icon {
-    border-radius: 10px;
-  }
-
-  :root[data-theme='ios'] .notes-bytemd .bytemd-toolbar-icon:hover {
-    background: hsl(var(--muted)) !important;
-  }
-
-  :root[data-theme='ios'] .notes-bytemd .bytemd-preview {
-    font-size: 15px;
-    line-height: 1.7;
-  }
-
-  :root[data-theme='ios'] .notes-bytemd .bytemd-preview img {
-    border-radius: 12px;
   }
 
   body {

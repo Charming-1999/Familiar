@@ -25,7 +25,6 @@ export const MarketPage: React.FC = () => {
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-foreground italic mb-2">工具市场</h2>
-          <p className="text-muted-foreground">统一元数据与按需加载已启用，新增工具不再需要在多个页面重复维护。</p>
         </div>
         <div className="w-full sm:w-80">
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索工具（名称 / 描述 / 关键词）" className="bg-muted/10" />

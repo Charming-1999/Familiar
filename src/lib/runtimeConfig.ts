@@ -125,6 +125,70 @@ export async function requestModelChatStream(args: { model: string; messages: Ch
   return response
 }
 
+export type AsrSubmitOptions = {
+  audioUrl: string
+  audioFormat: string
+  language?: string
+  enableItn?: boolean
+  enablePunc?: boolean
+  enableDdc?: boolean
+  enableSpeakerInfo?: boolean
+  enableEmotionDetection?: boolean
+  enableGenderDetection?: boolean
+  enableLid?: boolean
+  showUtterances?: boolean
+  showSpeechRate?: boolean
+  showVolume?: boolean
+}
+
+export type AsrUtterance = {
+  text: string
+  start_time: number
+  end_time: number
+  speaker?: string
+  emotion?: string
+  gender?: string
+  speech_rate?: number
+  volume?: number
+  additions?: Record<string, unknown>
+}
+
+export type AsrQueryResult = {
+  ok: boolean
+  status: 'running' | 'completed' | 'failed'
+  result?: { text?: string; utterances?: AsrUtterance[] }
+  error?: string
+}
+
+export async function submitAsrTask(options: AsrSubmitOptions, signal?: AbortSignal) {
+  const { audioUrl, audioFormat, language, ...flags } = options
+  const response = await fetch(`${API_BASE_PATH}/asr-submit`, {
+    method: 'POST',
+    headers: await getFunctionHeaders(),
+    body: JSON.stringify({ audioUrl, audioFormat, language, options: flags }),
+    signal,
+  })
+
+  const text = await response.text().catch(() => '')
+  if (!response.ok) throw new Error(parseResponseText(text, 'ASR submit failed'))
+  const json = text ? JSON.parse(text) : {}
+  if (!json.requestId) throw new Error('Missing request ID from server')
+  return { requestId: json.requestId as string }
+}
+
+export async function queryAsrResult(requestId: string, signal?: AbortSignal): Promise<AsrQueryResult> {
+  const response = await fetch(`${API_BASE_PATH}/asr-query`, {
+    method: 'POST',
+    headers: await getFunctionHeaders(),
+    body: JSON.stringify({ requestId }),
+    signal,
+  })
+
+  const text = await response.text().catch(() => '')
+  if (!response.ok) throw new Error(parseResponseText(text, 'ASR query failed'))
+  return text ? JSON.parse(text) : { ok: false, status: 'failed', error: 'Empty response' }
+}
+
 export async function listSystemConfigs() {
   const { data, error } = await supabase
     .from('system_configs')

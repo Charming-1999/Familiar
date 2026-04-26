@@ -23,7 +23,6 @@ export const DashboardPage: React.FC = () => {
       {quote ? <DailyQuoteWidget className="max-w-[720px]" /> : null}
       <header>
         <h2 className="text-4xl font-bold tracking-tighter text-foreground italic mb-2">个人工作台</h2>
-        <p className="text-muted-foreground">常用工具入口已经改为共享注册中心，名称、图标与描述将始终保持一致。</p>
       </header>
 
       {favoriteTools.length > 0 ? (

@@ -28,7 +28,7 @@ type Conversation = {
   created_at: string
 }
 
-type ModelId = 'gemini-3-pro' | 'gemini-3-flash'
+type ModelId = 'gemini-3.1-pro' | 'gemini-3-pro' | 'gemini-3-flash'
 
 
 function uid() {
@@ -257,7 +257,7 @@ export const ModelChatTool: React.FC = () => {
   const { user } = useAuthStore()
   const { getShortcutChecker } = useShortcutStore()
 
-  const [model, setModel] = useState<ModelId>('gemini-3-flash')
+  const [model, setModel] = useState<ModelId>('gemini-3.1-pro')
 
   const [conversationsLoading, setConversationsLoading] = useState(false)
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -616,7 +616,7 @@ export const ModelChatTool: React.FC = () => {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center space-x-2">
           <Bot className="w-5 h-5 text-primary" />
-          <h2 className="text-xl font-bold italic">模型对话</h2>
+          <h2 className="text-xl font-bold italic">Chat</h2>
         </div>
 
         <div className="flex items-center gap-2">
@@ -626,8 +626,9 @@ export const ModelChatTool: React.FC = () => {
             className="h-9 rounded-md border border-border bg-muted/30 px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
             disabled={sending}
           >
-            <option value="gemini-3-flash">gemini-3-flash</option>
+            <option value="gemini-3.1-pro">gemini-3.1-pro</option>
             <option value="gemini-3-pro">gemini-3-pro</option>
+            <option value="gemini-3-flash">gemini-3-flash</option>
           </select>
 
           <Button variant="outline" size="sm" onClick={clearLocal} disabled={sending} className="space-x-1">
@@ -652,7 +653,7 @@ export const ModelChatTool: React.FC = () => {
 
       {!user ? (
         <div className="glass-card p-6 rounded-lg text-sm text-muted-foreground">
-          请先登录后使用“模型对话”。历史对话会保存到云端（最近 20 个对话窗口）。
+          请先登录后使用 Chat。历史对话会保存到云端（最近 20 个对话窗口）。
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-[320px,1fr] gap-4 flex-1 min-h-0">

@@ -1,9 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { NotebookPen, Plus, Save, X, Search, GripVertical, Trash2, FileText, FileCode2 } from 'lucide-react'
-import 'bytemd/dist/index.css'
-import 'github-markdown-css/github-markdown.css'
-import 'katex/dist/katex.min.css'
-import 'highlight.js/styles/github.css'
+import { NotebookPen, Plus, Save, X, Search, GripVertical, Trash2 } from 'lucide-react'
 
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
@@ -12,28 +8,16 @@ import { useAuthStore } from '../stores/useAuthStore'
 import { useShortcutStore } from '../stores/useShortcutStore'
 import { supabase } from '../lib/supabase'
 
-type NoteFormat = 'plain' | 'markdown'
-
 type Note = {
   id: string
   user_id: string
   title: string
   content: string
-  format: NoteFormat
+  format: string
   order_index: number
   created_at: string
   updated_at: string
 }
-
-type BytemdEditorComponent = React.ComponentType<{
-  value: string
-  plugins: any[]
-  onChange: (v: string) => void
-  mode?: 'split' | 'tab' | 'auto'
-  previewDebounce?: number
-  placeholder?: string
-}>
-
 
 function clampTitleInput(s: string) {
   return s.slice(0, 80)
@@ -43,7 +27,6 @@ function normalizeTitleForSave(s: string) {
   const t = s.trim().slice(0, 80)
   return t.length ? t : '未命名'
 }
-
 
 export const NotesTool: React.FC = () => {
   const { user } = useAuthStore()
@@ -57,12 +40,6 @@ export const NotesTool: React.FC = () => {
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const [savingIds, setSavingIds] = useState<Record<string, boolean>>({})
-
-  // Bytemd is heavy; load it only when a Markdown note is active.
-  const [BytemdEditor, setBytemdEditor] = useState<BytemdEditorComponent | null>(null)
-  const [bytemdPlugins, setBytemdPlugins] = useState<any[] | null>(null)
-  const [bytemdLoadError, setBytemdLoadError] = useState<string | null>(null)
-
 
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [paletteQuery, setPaletteQuery] = useState('')
@@ -98,11 +75,9 @@ export const NotesTool: React.FC = () => {
 
   const loadNotes = async () => {
     if (!user) return
-    console.log('[NotesTool] loadNotes START', Date.now())
     setLoading(true)
     setError(null)
     try {
-      console.log('[NotesTool] Sending notes request...', Date.now())
       const { data, error } = await supabase
         .from('notes')
         .select('id,user_id,title,content,format,order_index,created_at,updated_at')
@@ -110,7 +85,6 @@ export const NotesTool: React.FC = () => {
         .order('order_index', { ascending: true })
         .order('updated_at', { ascending: false })
 
-      console.log('[NotesTool] Notes response received', { count: data?.length, error, timestamp: Date.now() })
       if (error) throw error
       const list = (data || []) as Note[]
       setNotes(list)
@@ -120,11 +94,9 @@ export const NotesTool: React.FC = () => {
         setActiveId((prev) => prev || firstId)
       }
     } catch (e: any) {
-      console.error('[NotesTool] loadNotes ERROR', e)
       setError(e.message || '加载失败')
     } finally {
       setLoading(false)
-      console.log('[NotesTool] loadNotes END', Date.now())
     }
   }
 
@@ -133,22 +105,17 @@ export const NotesTool: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
 
-  // 快捷键支持
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const checkSave = getShortcutChecker('save')
       if (checkSave && checkSave(e)) {
         e.preventDefault()
-        // 如果有活动笔记，立即保存
         if (activeNote) {
-          // 清除自动保存定时器并立即保存
           const existingTimer = saveTimersRef.current[activeNote.id]
           if (existingTimer) {
             window.clearTimeout(existingTimer)
             delete saveTimersRef.current[activeNote.id]
           }
-          
-          // 手动触发保存
           setSavingIds((m) => ({ ...m, [activeNote.id]: true }))
           const payload = { updated_at: new Date().toISOString() }
           Promise.resolve(supabase.from('notes').update(payload).eq('id', activeNote.id).eq('user_id', user?.id))
@@ -170,8 +137,7 @@ export const NotesTool: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [activeNote, user?.id, getShortcutChecker])
 
-
-  const scheduleSave = (id: string, patch: Partial<Pick<Note, 'title' | 'content' | 'format' | 'order_index'>>) => {
+  const scheduleSave = (id: string, patch: Partial<Pick<Note, 'title' | 'content' | 'order_index'>>) => {
     if (!user) return
     const existing = saveTimersRef.current[id]
     if (existing) window.clearTimeout(existing)
@@ -201,7 +167,7 @@ export const NotesTool: React.FC = () => {
         user_id: user.id,
         title: '未命名',
         content: '',
-        format: 'plain' as NoteFormat,
+        format: 'plain',
         order_index: nextIndex,
         updated_at: new Date().toISOString(),
       }
@@ -227,10 +193,7 @@ export const NotesTool: React.FC = () => {
   }
 
   const closeTab = (id: string) => {
-    setOpenIds((prev) => {
-      const next = prev.filter((x) => x !== id)
-      return next
-    })
+    setOpenIds((prev) => prev.filter((x) => x !== id))
     if (activeId === id) {
       const idx = openTabs.findIndex((t) => t.id === id)
       const fallback = openTabs[idx - 1]?.id || openTabs[idx + 1]?.id || null
@@ -324,69 +287,6 @@ export const NotesTool: React.FC = () => {
     }
   }, [paletteOpen])
 
-  useEffect(() => {
-    if (activeNote?.format !== 'markdown') return
-    if (BytemdEditor && bytemdPlugins) return
-
-    let cancelled = false
-    ;(async () => {
-      try {
-        const [
-          reactMod,
-          gfm,
-          highlight,
-          math,
-          mermaid,
-          gemoji,
-          breaks,
-          frontmatter,
-          mediumZoom,
-        ] = await Promise.all([
-          import('@bytemd/react'),
-          import('@bytemd/plugin-gfm'),
-          import('@bytemd/plugin-highlight'),
-          import('@bytemd/plugin-math'),
-          import('@bytemd/plugin-mermaid'),
-          import('@bytemd/plugin-gemoji'),
-          import('@bytemd/plugin-breaks'),
-          import('@bytemd/plugin-frontmatter'),
-          import('@bytemd/plugin-medium-zoom'),
-        ])
-
-        if (cancelled) return
-
-        const callPlugin = (m: any) => {
-          const fn = m?.default ?? m
-          return typeof fn === 'function' ? fn() : null
-        }
-
-        const plugins = [
-          callPlugin(gfm),
-          callPlugin(breaks),
-          callPlugin(frontmatter),
-          callPlugin(gemoji),
-          callPlugin(highlight),
-          callPlugin(math),
-          callPlugin(mermaid),
-          callPlugin(mediumZoom),
-        ].filter(Boolean)
-
-        setBytemdEditor(() => (reactMod as any).Editor)
-        setBytemdPlugins(plugins)
-        setBytemdLoadError(null)
-      } catch (e: any) {
-        if (cancelled) return
-        console.error('[NotesTool] Bytemd load failed', e)
-        setBytemdLoadError(e?.message || 'Markdown 编辑器加载失败')
-      }
-    })()
-
-    return () => {
-      cancelled = true
-    }
-  }, [activeNote?.format, BytemdEditor, bytemdPlugins])
-
-
   return (
     <div className="notes-tool flex-1 min-h-0 flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -411,7 +311,7 @@ export const NotesTool: React.FC = () => {
 
       {!user ? (
         <div className="glass-card p-6 rounded-lg text-sm text-muted-foreground">
-          请先登录后使用“随心记”。笔记数据会绑定当前账户并同步到云端。
+          请先登录后使用"随心记"。
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-[300px,1fr] gap-4 flex-1 min-h-0 overflow-hidden">
@@ -440,15 +340,11 @@ export const NotesTool: React.FC = () => {
                       )}
                       onClick={() => openNote(n.id)}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-foreground truncate">{n.title?.trim() ? n.title : '未命名'}</div>
-
-                          <div className="text-[11px] text-muted-foreground mt-1 truncate">
-                            {n.content ? n.content.replace(/\s+/g, ' ').slice(0, 80) : '（空）'}
-                          </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-foreground truncate">{n.title?.trim() ? n.title : '未命名'}</div>
+                        <div className="text-[11px] text-muted-foreground mt-1 truncate">
+                          {n.content ? n.content.replace(/\s+/g, ' ').slice(0, 80) : '（空）'}
                         </div>
-                        <div className="text-[10px] text-muted-foreground/70 shrink-0">{n.format === 'markdown' ? 'MD' : 'TXT'}</div>
                       </div>
                     </button>
                   ))}
@@ -461,13 +357,10 @@ export const NotesTool: React.FC = () => {
           <div className="border border-border rounded-lg bg-muted/10 overflow-hidden flex flex-col min-h-0">
             {/* Tabs */}
             <div className="border-b border-border bg-background/30">
-              <div 
+              <div
                 className="flex items-center gap-1 overflow-x-auto px-2 py-2"
                 onDoubleClick={(e) => {
-                  // 双击空白区域新建笔记
-                  if (e.target === e.currentTarget) {
-                    handleCreate()
-                  }
+                  if (e.target === e.currentTarget) handleCreate()
                 }}
                 title="双击空白处新建笔记"
               >
@@ -477,9 +370,7 @@ export const NotesTool: React.FC = () => {
                     <div
                       key={t.id}
                       draggable
-                      onDragStart={() => {
-                        dragSourceIdRef.current = t.id
-                      }}
+                      onDragStart={() => { dragSourceIdRef.current = t.id }}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={() => {
                         const src = dragSourceIdRef.current
@@ -497,14 +388,10 @@ export const NotesTool: React.FC = () => {
                     >
                       <GripVertical className="w-3 h-3 opacity-60" />
                       <span className="text-xs font-medium max-w-[160px] truncate">{t.title?.trim() ? t.title : '未命名'}</span>
-
                       {savingIds[t.id] ? <Save className="w-3 h-3 text-primary" /> : null}
                       <button
                         className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          closeTab(t.id)
-                        }}
+                        onClick={(e) => { e.stopPropagation(); closeTab(t.id) }}
                         title="关闭 (Ctrl/Cmd+W)"
                       >
                         <X className="w-3 h-3" />
@@ -539,7 +426,6 @@ export const NotesTool: React.FC = () => {
                     }}
                     className="bg-muted/20 h-9"
                   />
-
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground">请选择或新建一条笔记</div>
@@ -547,96 +433,37 @@ export const NotesTool: React.FC = () => {
 
               <div className="flex items-center gap-2">
                 {activeNote && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const next: NoteFormat = activeNote.format === 'plain' ? 'markdown' : 'plain'
-                        setNotes((prev) => prev.map((n) => (n.id === activeNote.id ? { ...n, format: next } : n)))
-                        scheduleSave(activeNote.id, { format: next })
-                      }}
-                      className="space-x-1"
-                      title="切换文本类型"
-                    >
-                      {activeNote.format === 'markdown' ? <FileCode2 className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
-                      <span>{activeNote.format === 'markdown' ? 'Markdown' : '纯文本'}</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-red-400 hover:text-red-500 hover:bg-red-400/10 border-red-400/20"
-                      onClick={() => handleDelete(activeNote.id)}
-                      title="删除"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-400 hover:text-red-500 hover:bg-red-400/10 border-red-400/20"
+                    onClick={() => handleDelete(activeNote.id)}
+                    title="删除"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 )}
               </div>
             </div>
 
             {/* Editor body */}
-            {activeNote?.format === 'markdown' ? (
-              <div className="flex-1 min-h-0 p-4 overflow-hidden flex flex-col">
-                {bytemdLoadError ? (
-                  <div className="h-full rounded-lg border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-400">
-                    {bytemdLoadError}
-                  </div>
-                ) : BytemdEditor && bytemdPlugins ? (
-                  <div className="notes-bytemd flex-1 min-h-0 w-full">
-                    <BytemdEditor
-                      value={activeNote?.content || ''}
-                      plugins={bytemdPlugins}
-                      mode="split"
-                      previewDebounce={250}
-                      placeholder="开始记录 Markdown…（自动保存到云端）"
-                      onChange={(content) => {
-                        if (!activeNote) return
-                        setNotes((prev) => prev.map((n) => (n.id === activeNote.id ? { ...n, content } : n)))
-                        scheduleSave(activeNote.id, { content })
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-                    正在加载 Markdown 编辑器…
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2">
-                <div className="p-4 border-r border-border/60 min-h-0">
-                  <textarea
-                    className="w-full h-full bg-muted/10 border border-border rounded-lg p-4 font-mono text-sm resize-none focus:outline-none focus:border-primary/50 transition-colors"
-                    placeholder="开始记录...（自动保存到云端）"
-                    value={activeNote?.content || ''}
-                    onChange={(e) => {
-                      if (!activeNote) return
-                      const content = e.target.value
-                      setNotes((prev) => prev.map((n) => (n.id === activeNote.id ? { ...n, content } : n)))
-                      scheduleSave(activeNote.id, { content })
-                    }}
-                    disabled={!activeNote}
-                  />
-                </div>
+            <div className="flex-1 min-h-0 p-4">
+              <textarea
+                className="w-full h-full bg-muted/10 border border-border rounded-lg p-4 font-mono text-sm resize-none focus:outline-none focus:border-primary/50 transition-colors"
+                placeholder="开始记录...（自动保存到云端）"
+                value={activeNote?.content || ''}
+                onChange={(e) => {
+                  if (!activeNote) return
+                  const content = e.target.value
+                  setNotes((prev) => prev.map((n) => (n.id === activeNote.id ? { ...n, content } : n)))
+                  scheduleSave(activeNote.id, { content })
+                }}
+                disabled={!activeNote}
+              />
+            </div>
 
-                <div className="p-4 min-h-0 overflow-auto">
-                  <div className="text-sm text-muted-foreground">
-                    纯文本模式不提供渲染预览。切换为 Markdown 将启用 Bytemd 编辑器（支持工具栏、实时预览等）。
-                  </div>
-                </div>
-              </div>
-            )}
-
-
-            <div className="px-4 py-2 border-t border-border text-[11px] text-muted-foreground flex items-center justify-between">
-              <div>
-                快捷键：<span className="font-mono">Ctrl/Cmd+T</span> 新建，<span className="font-mono">Ctrl/Cmd+P</span> 搜索切换，<span className="font-mono">Ctrl/Cmd+W</span> 关闭标签
-              </div>
-              <div className="flex items-center gap-2">
-                {activeNote && savingIds[activeNote.id] ? <span className="text-primary">Saving...</span> : <span>Saved</span>}
-              </div>
+            <div className="px-4 py-2 border-t border-border text-[11px] text-muted-foreground flex items-center justify-end">
+              {activeNote && savingIds[activeNote.id] ? <span className="text-primary">Saving...</span> : activeNote ? <span>Saved</span> : null}
             </div>
           </div>
         </div>
@@ -676,20 +503,13 @@ export const NotesTool: React.FC = () => {
                     <button
                       key={n.id}
                       className="w-full text-left p-4 hover:bg-muted/30 transition-colors"
-                      onClick={() => {
-                        openNote(n.id)
-                        setPaletteOpen(false)
-                      }}
+                      onClick={() => { openNote(n.id); setPaletteOpen(false) }}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-foreground truncate">{n.title?.trim() ? n.title : '未命名'}</div>
-
-                          <div className="text-[11px] text-muted-foreground mt-1 line-clamp-2">
-                            {n.content ? n.content.replace(/\s+/g, ' ').slice(0, 140) : '（空）'}
-                          </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-foreground truncate">{n.title?.trim() ? n.title : '未命名'}</div>
+                        <div className="text-[11px] text-muted-foreground mt-1 line-clamp-2">
+                          {n.content ? n.content.replace(/\s+/g, ' ').slice(0, 140) : '（空）'}
                         </div>
-                        <div className="text-[10px] text-muted-foreground/70 shrink-0">{n.format === 'markdown' ? 'MD' : 'TXT'}</div>
                       </div>
                     </button>
                   ))}

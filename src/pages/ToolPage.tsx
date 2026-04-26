@@ -12,7 +12,6 @@ const ToolFallback = ({ name }: { name: string }) => (
     <div className="glass-card rounded-2xl border border-border px-8 py-7 text-center space-y-3">
       <Loader2 className="w-8 h-8 mx-auto text-primary animate-spin" />
       <div className="text-sm text-foreground">正在加载 {name}</div>
-      <div className="text-xs text-muted-foreground">按需加载已启用，避免整包工具一次性阻塞。</div>
     </div>
   </div>
 )

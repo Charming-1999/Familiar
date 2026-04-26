@@ -173,7 +173,6 @@ export const AdminConfigPage: React.FC = () => {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-3xl font-bold italic text-foreground flex items-center gap-3"><ShieldCheck className="w-7 h-7 text-primary" />配置中心</h2>
-          <p className="text-sm text-muted-foreground mt-2">统一管理激活码、第三方 Key 与项目运行配置，所有读写都由超管账号控制。</p>
         </div>
         <Button variant="outline" onClick={() => void loadAll()} disabled={loading} className="space-x-2">
           <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />

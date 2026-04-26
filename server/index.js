@@ -1,4 +1,5 @@
 import { createServer } from 'node:http'
+import { randomUUID } from 'node:crypto'
 import { createReadStream, existsSync, readFileSync } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import path from 'node:path'
@@ -294,6 +295,10 @@ async function handleModelChat(req, res) {
     const apiUrl = configMap.model_chat_api_url || process.env.MODEL_CHAT_API_URL || ''
     const apiKey = configMap.model_chat_api_key || process.env.MODEL_CHAT_API_KEY || ''
 
+    console.log('[model-chat] apiUrl:', apiUrl ? `${apiUrl.slice(0, 40)}...` : '(empty)')
+    console.log('[model-chat] apiKey:', apiKey ? `${apiKey.slice(0, 6)}...` : '(empty)')
+    console.log('[model-chat] model:', model)
+
     if (!apiUrl || !apiKey) {
       jsonResponse(res, 500, { error: 'Model chat config is not complete' })
       return
@@ -333,6 +338,185 @@ async function handleModelChat(req, res) {
     })
 
     Readable.fromWeb(upstreamResponse.body).pipe(res)
+  } catch (error) {
+    console.error('[model-chat] catch error:', error)
+    const message = error instanceof Error ? error.message : 'Unexpected server error'
+    const status = message === 'Payload too large' ? 413 : 500
+    jsonResponse(res, status, { error: message })
+  }
+}
+
+async function handleAsrSubmit(req, res) {
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, corsHeaders)
+    res.end()
+    return
+  }
+
+  if (req.method !== 'POST') {
+    jsonResponse(res, 405, { error: 'Method not allowed' })
+    return
+  }
+
+  try {
+    const auth = await requireActivatedUser(req.headers.authorization || '')
+    if ('error' in auth) {
+      jsonResponse(res, auth.status, { error: auth.error })
+      return
+    }
+
+    const body = await readJsonBody(req)
+    const audioUrl = typeof body?.audioUrl === 'string' ? body.audioUrl.trim() : ''
+    const audioFormat = typeof body?.audioFormat === 'string' ? body.audioFormat.trim() : ''
+
+    if (!audioUrl) {
+      jsonResponse(res, 400, { error: 'Audio URL is required' })
+      return
+    }
+    if (!audioFormat) {
+      jsonResponse(res, 400, { error: 'Audio format is required' })
+      return
+    }
+
+    const configMap = await readConfigValues(auth.adminClient, [
+      'volcengine_asr_app_key',
+      'volcengine_asr_access_key',
+    ])
+
+    const appKey = configMap.volcengine_asr_app_key || process.env.VOLCENGINE_ASR_APP_KEY || ''
+    const accessKey = configMap.volcengine_asr_access_key || process.env.VOLCENGINE_ASR_ACCESS_KEY || ''
+
+    if (!appKey || !accessKey) {
+      jsonResponse(res, 500, { error: 'ASR API key is not configured' })
+      return
+    }
+
+    const requestId = randomUUID()
+    const language = typeof body?.language === 'string' ? body.language.trim() : ''
+    const options = typeof body?.options === 'object' && body.options !== null ? body.options : {}
+
+    const audioPayload = { format: audioFormat, url: audioUrl }
+    if (language) audioPayload.language = language
+
+    const requestPayload = {
+      model_name: 'bigmodel',
+      enable_itn: options.enableItn ?? true,
+      enable_punc: options.enablePunc ?? true,
+      show_utterances: options.showUtterances ?? true,
+    }
+    if (options.enableDdc) requestPayload.enable_ddc = true
+    if (options.enableSpeakerInfo) requestPayload.enable_speaker_info = true
+    if (options.enableEmotionDetection) requestPayload.enable_emotion_detection = true
+    if (options.enableGenderDetection) requestPayload.enable_gender_detection = true
+    if (options.enableLid) requestPayload.enable_lid = true
+    if (options.showSpeechRate) requestPayload.show_speech_rate = true
+    if (options.showVolume) requestPayload.show_volume = true
+
+    const upstreamResponse = await fetch(
+      'https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-App-Key': appKey,
+          'X-Api-Access-Key': accessKey,
+          'X-Api-Resource-Id': 'volc.seedasr.auc',
+          'X-Api-Request-Id': requestId,
+          'X-Api-Sequence': '-1',
+        },
+        body: JSON.stringify({
+          user: { uid: auth.user.id },
+          audio: audioPayload,
+          request: requestPayload,
+        }),
+      },
+    )
+
+    const statusCode = upstreamResponse.headers.get('X-Api-Status-Code')
+    if (statusCode !== '20000000') {
+      const msg = upstreamResponse.headers.get('X-Api-Message') || 'ASR submit failed'
+      jsonResponse(res, 502, { error: `ASR submit failed: ${msg} (code: ${statusCode})` })
+      return
+    }
+
+    jsonResponse(res, 200, { ok: true, requestId })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unexpected server error'
+    const status = message === 'Payload too large' ? 413 : 500
+    jsonResponse(res, status, { error: message })
+  }
+}
+
+async function handleAsrQuery(req, res) {
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, corsHeaders)
+    res.end()
+    return
+  }
+
+  if (req.method !== 'POST') {
+    jsonResponse(res, 405, { error: 'Method not allowed' })
+    return
+  }
+
+  try {
+    const auth = await requireActivatedUser(req.headers.authorization || '')
+    if ('error' in auth) {
+      jsonResponse(res, auth.status, { error: auth.error })
+      return
+    }
+
+    const body = await readJsonBody(req)
+    const requestId = typeof body?.requestId === 'string' ? body.requestId.trim() : ''
+    if (!requestId) {
+      jsonResponse(res, 400, { error: 'Request ID is required' })
+      return
+    }
+
+    const configMap = await readConfigValues(auth.adminClient, [
+      'volcengine_asr_app_key',
+      'volcengine_asr_access_key',
+    ])
+
+    const appKey = configMap.volcengine_asr_app_key || process.env.VOLCENGINE_ASR_APP_KEY || ''
+    const accessKey = configMap.volcengine_asr_access_key || process.env.VOLCENGINE_ASR_ACCESS_KEY || ''
+
+    if (!appKey || !accessKey) {
+      jsonResponse(res, 500, { error: 'ASR API key is not configured' })
+      return
+    }
+
+    const upstreamResponse = await fetch(
+      'https://openspeech.bytedance.com/api/v3/auc/bigmodel/query',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-App-Key': appKey,
+          'X-Api-Access-Key': accessKey,
+          'X-Api-Resource-Id': 'volc.seedasr.auc',
+          'X-Api-Request-Id': requestId,
+          'X-Api-Sequence': '-1',
+        },
+        body: JSON.stringify({}),
+      },
+    )
+
+    const statusCode = upstreamResponse.headers.get('X-Api-Status-Code')
+    const responseBody = await upstreamResponse.json().catch(() => null)
+
+    if (statusCode === '20000000') {
+      jsonResponse(res, 200, { ok: true, status: 'completed', result: responseBody })
+      return
+    }
+
+    if (statusCode === '20000001' || statusCode === '20000002') {
+      jsonResponse(res, 200, { ok: true, status: 'running' })
+      return
+    }
+
+    const msg = upstreamResponse.headers.get('X-Api-Message') || 'ASR query failed'
+    jsonResponse(res, 200, { ok: false, status: 'failed', error: `${msg} (code: ${statusCode})` })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected server error'
     const status = message === 'Payload too large' ? 413 : 500
@@ -402,6 +586,16 @@ const server = createServer(async (req, res) => {
 
   if (url.pathname === '/api/model-chat') {
     await handleModelChat(req, res)
+    return
+  }
+
+  if (url.pathname === '/api/asr-submit') {
+    await handleAsrSubmit(req, res)
+    return
+  }
+
+  if (url.pathname === '/api/asr-query') {
+    await handleAsrQuery(req, res)
     return
   }
 
