@@ -700,7 +700,6 @@ export const ExcalidrawTool: React.FC = () => {
           ) : (
             <>
               {renderCanvas(false)}
-
             </>
           )}
         </div>
@@ -727,4 +726,3 @@ export const ExcalidrawTool: React.FC = () => {
     </div>
   )
 }
-

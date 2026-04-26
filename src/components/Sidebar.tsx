@@ -40,7 +40,6 @@ const iconMap: Record<string, any> = {
   'admin_config': Settings2,
 }
 
-
 export const Sidebar: React.FC = () => {
   const { signOut, user, profile } = useAuthStore()
 

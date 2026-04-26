@@ -65,7 +65,7 @@ export const TOOL_REGISTRY: ToolRegistryItem[] = [
   { id: 'todolist', name: 'TodoList', description: '简单待办清单，支持收藏区 hover 快捷完成。', keywords: ['todo', '待办', '任务'], category: 'dev', icon: ListTodo, path: '/tool/todolist', component: lazyNamed(() => import('../tools/TodoListTool'), 'TodoListTool') },
   { id: 'cron', name: 'Cron 表达式', description: '可视化生成 Cron 定时任务表达式。', keywords: ['cron', '定时', '表达式'], category: 'dev', icon: Clock, path: '/tool/cron', component: lazyNamed(() => import('../tools/CronTool'), 'CronTool') },
   { id: 'image', name: '图片工具集', description: '图片转换、压缩与基础处理的多合一工具。', keywords: ['图片', 'image', '压缩'], category: 'convert', icon: ImageIcon, path: '/tool/image', component: lazyNamed(() => import('../tools/ImageTool'), 'ImageTool') },
-  { id: 'nanobanana', name: 'NanoBanana 生图', description: '支持参考图、比例与分辨率的 AI 生图工具。', keywords: ['生图', '绘画', 'nano', 'banana'], category: 'dev', icon: Sparkles, path: '/tool/nanobanana', component: lazyNamed(() => import('../tools/NanoBananaTool'), 'NanoBananaTool') },
+  { id: 'nanobanana', name: 'AI 生图', description: 'gpt-image-2 / nano-banana-pro 系列生图：支持参考图、比例与分辨率，展示进度与结果。', keywords: ['生图', '绘画', 'gpt-image', 'nano', 'banana', 'ai'], category: 'dev', icon: Sparkles, path: '/tool/nanobanana', component: lazyNamed(() => import('../tools/NanoBananaTool'), 'NanoBananaTool') },
 ]
 
 export const TOOL_REGISTRY_BY_ID = Object.fromEntries(TOOL_REGISTRY.map((item) => [item.id, item])) as Record<string, ToolRegistryItem>

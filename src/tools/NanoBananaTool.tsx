@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase'
 
 
 type NanoBananaModel =
+  | 'gpt-image-2'
   | 'nano-banana-fast'
   | 'nano-banana'
   | 'nano-banana-pro'
@@ -28,6 +29,11 @@ type AspectRatio =
   | '5:4'
   | '4:5'
   | '21:9'
+  | '9:21'
+  | '1:3'
+  | '3:1'
+  | '2:1'
+  | '1:2'
 
 type ImageSize = '1K' | '2K' | '4K'
 
@@ -51,6 +57,7 @@ const LS_BASE_URL = 'nanobanana:baseUrl'
 const DEFAULT_BASE_URL = 'https://grsai.dakka.com.cn'
 
 const MODELS: Array<{ id: NanoBananaModel; label: string }> = [
+  { id: 'gpt-image-2', label: 'gpt-image-2（默认）' },
   { id: 'nano-banana-fast', label: 'nano-banana-fast（快速）' },
   { id: 'nano-banana', label: 'nano-banana（标准）' },
   { id: 'nano-banana-pro', label: 'nano-banana-pro（Pro）' },
@@ -72,6 +79,11 @@ const ASPECT_RATIOS: Array<{ id: AspectRatio; label: string }> = [
   { id: '5:4', label: '5:4' },
   { id: '4:5', label: '4:5' },
   { id: '21:9', label: '21:9' },
+  { id: '9:21', label: '9:21' },
+  { id: '1:3', label: '1:3' },
+  { id: '3:1', label: '3:1' },
+  { id: '2:1', label: '2:1' },
+  { id: '1:2', label: '1:2' },
 ]
 
 function safeJsonParse<T = any>(text: string): T | null {
@@ -138,7 +150,7 @@ export const NanoBananaTool: React.FC = () => {
   const [apiKey, setApiKey] = useState('')
   const [baseUrl, setBaseUrl] = useState(DEFAULT_BASE_URL)
 
-  const [model, setModel] = useState<NanoBananaModel>('nano-banana-pro')
+  const [model, setModel] = useState<NanoBananaModel>('gpt-image-2')
   const [prompt, setPrompt] = useState('')
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('auto')
   const [imageSize, setImageSize] = useState<ImageSize>('1K')
@@ -338,8 +350,10 @@ export const NanoBananaTool: React.FC = () => {
         if (urls.length > 0) body.urls = urls
         if (showImageSize) body.imageSize = imageSize
 
+        const drawEndpoint = model === 'gpt-image-2' ? '/v1/draw/completions' : '/v1/draw/nano-banana'
+
         tasks.push(
-          fetch(`${base}/v1/draw/nano-banana`, {
+          fetch(`${base}${drawEndpoint}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -534,7 +548,7 @@ export const NanoBananaTool: React.FC = () => {
             <Sparkles className="w-5 h-5 text-primary" />
           </div>
           <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            NanoBanana Pro 生图
+            AI 生图
           </h2>
         </div>
 
